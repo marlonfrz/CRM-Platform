@@ -1,8 +1,7 @@
 .stack { display: grid; gap: 1rem; }
 .departmentCard { padding: clamp(1.5rem, 3vw, 2rem); }
-.sectionHeader { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.75rem; }
+.sectionHeader { margin-bottom: 1.75rem; }
 .sectionHeader h2 { margin: 0; font-size: 1.5rem; }
-.count { display: grid; min-width: 2rem; height: 2rem; place-items: center; border-radius: 999px; background: #edf2ff; color: var(--color-primary-dark); font-size: .78rem; font-weight: 800; }
 .form { display: flex; align-items: end; gap: .75rem; }
 .form > label { flex: 1; }
 .createForm { padding: 1rem; border: 1px solid #e3e8f1; border-radius: var(--radius-card); background: #f8faff; }

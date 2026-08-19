@@ -63,12 +63,6 @@ export function AdministrationPanel(props: AdministrationPanelProps) {
       <Card className={styles.departmentCard}>
         <div className={styles.sectionHeader}>
           <h2>Departamentos</h2>
-          <span
-            aria-label={`${props.departments.length} departamentos`}
-            className={styles.count}
-          >
-            {props.departments.length}
-          </span>
         </div>
         {props.canCreateDepartments ? (
           <form className={`${styles.form} ${styles.createForm}`} onSubmit={createDepartment}>
