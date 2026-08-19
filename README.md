@@ -41,7 +41,18 @@ Backend:
 cd backend
 python -m venv .venv
 python -m pip install -e ".[dev]"
+docker compose up -d database
+alembic upgrade head
 ruff check .
 mypy app
 pytest
 ```
+
+Initialize the first organization and owner after applying migrations:
+
+```bash
+cd backend
+crm-bootstrap --mode BUSINESS --organization-name "Example Company" --owner-name "Owner Name" --owner-email owner@example.com
+```
+
+Use `INDIVIDUAL` instead of `BUSINESS` for a single-person installation. The command prompts for the password without echoing it. Email delivery and user invitations are intentionally deferred to the authentication phase.

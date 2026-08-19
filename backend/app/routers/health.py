@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.database import engine
+from app.db.session import engine
 
 router = APIRouter(prefix="/health", tags=["health"])
 
