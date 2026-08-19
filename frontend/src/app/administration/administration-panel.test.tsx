@@ -12,28 +12,24 @@ describe("AdministrationPanel", () => {
     const markup = renderToStaticMarkup(
       <AdministrationPanel
         canCreateDepartments
-        canEditOrganization
         departments={[{ id: "sales", name: "Ventas" }]}
-        organization={{ name: "Ticket4U", mode: "BUSINESS" }}
       />,
     );
 
-    expect(markup).toContain("Ticket4U");
     expect(markup).toContain("Nuevo departamento");
     expect(markup).toContain("Ventas");
     expect(markup).toContain("Eliminar");
   });
 
-  it("omits departments in individual mode", () => {
+  it("hides department creation from scoped administrators", () => {
     const markup = renderToStaticMarkup(
       <AdministrationPanel
         canCreateDepartments={false}
-        canEditOrganization
-        departments={[]}
-        organization={{ name: "Personal", mode: "INDIVIDUAL" }}
+        departments={[{ id: "sales", name: "Ventas" }]}
       />,
     );
 
     expect(markup).not.toContain("Nuevo departamento");
+    expect(markup).toContain("Ventas");
   });
 });

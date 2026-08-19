@@ -14,9 +14,7 @@ import styles from "./administration-panel.module.css";
 type Department = { id: string; name: string };
 type AdministrationPanelProps = {
   canCreateDepartments: boolean;
-  canEditOrganization: boolean;
   departments: Department[];
-  organization: { name: string; mode: "INDIVIDUAL" | "BUSINESS" };
 };
 
 export function AdministrationPanel(props: AdministrationPanelProps) {
@@ -36,12 +34,6 @@ export function AdministrationPanel(props: AdministrationPanelProps) {
     }
     router.refresh();
     return true;
-  }
-
-  async function updateOrganization(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const name = new FormData(event.currentTarget).get("organizationName");
-    await mutate("/admin/organization", "PATCH", { name });
   }
 
   async function createDepartment(event: FormEvent<HTMLFormElement>) {
@@ -68,51 +60,42 @@ export function AdministrationPanel(props: AdministrationPanelProps) {
   return (
     <div className={styles.stack}>
       {error ? <FormError>{error}</FormError> : null}
-      <Card>
+      <Card className={styles.departmentCard}>
         <div className={styles.sectionHeader}>
-          <div><h2>Organización</h2><MutedText>La modalidad se fija durante el primer inicio.</MutedText></div>
-          <strong>{props.organization.mode === "INDIVIDUAL" ? "Personal" : "Empresa"}</strong>
+          <h2>Departamentos</h2>
+          <span
+            aria-label={`${props.departments.length} departamentos`}
+            className={styles.count}
+          >
+            {props.departments.length}
+          </span>
         </div>
-        {props.canEditOrganization ? (
-          <form className={styles.form} onSubmit={updateOrganization}>
-            <FormField label="Nombre" name="organizationName" defaultValue={props.organization.name} required maxLength={200} />
-            <Button type="submit">Guardar</Button>
+        {props.canCreateDepartments ? (
+          <form className={`${styles.form} ${styles.createForm}`} onSubmit={createDepartment}>
+            <FormField label="Nuevo departamento" name="departmentName" required maxLength={120} />
+            <Button type="submit">Crear</Button>
           </form>
-        ) : <strong>{props.organization.name}</strong>}
+        ) : null}
+        <div className={styles.departmentList}>
+          {props.departments.length === 0 ? <MutedText className={styles.empty}>Todavía no hay departamentos disponibles.</MutedText> : null}
+          {props.departments.map((department) => (
+            <div className={styles.department} key={department.id}>
+              {editingDepartment?.id === department.id ? (
+                <form className={styles.form} onSubmit={saveDepartment}>
+                  <FormField label="Nombre" name="departmentName" defaultValue={department.name} required maxLength={120} />
+                  <Button type="submit">Guardar</Button>
+                  <Button type="button" variant="quiet" onClick={() => setEditingDepartment(null)}>Cancelar</Button>
+                </form>
+              ) : (
+                <><strong>{department.name}</strong><div className={styles.actions}>
+                  <Button type="button" variant="quiet" onClick={() => setEditingDepartment(department)}>Editar</Button>
+                  <Button type="button" variant="danger" onClick={() => removeDepartment(department)}>Eliminar</Button>
+                </div></>
+              )}
+            </div>
+          ))}
+        </div>
       </Card>
-
-      {props.organization.mode === "BUSINESS" ? (
-        <Card>
-          <div className={styles.sectionHeader}>
-            <div><h2>Departamentos</h2><MutedText>Define la estructura de trabajo y el alcance de los administradores.</MutedText></div>
-          </div>
-          {props.canCreateDepartments ? (
-            <form className={styles.form} onSubmit={createDepartment}>
-              <FormField label="Nuevo departamento" name="departmentName" required maxLength={120} />
-              <Button type="submit">Crear</Button>
-            </form>
-          ) : null}
-          <div className={styles.departmentList}>
-            {props.departments.length === 0 ? <MutedText className={styles.empty}>Todavía no hay departamentos disponibles.</MutedText> : null}
-            {props.departments.map((department) => (
-              <div className={styles.department} key={department.id}>
-                {editingDepartment?.id === department.id ? (
-                  <form className={styles.form} onSubmit={saveDepartment}>
-                    <FormField label="Nombre" name="departmentName" defaultValue={department.name} required maxLength={120} />
-                    <Button type="submit">Guardar</Button>
-                    <Button type="button" variant="quiet" onClick={() => setEditingDepartment(null)}>Cancelar</Button>
-                  </form>
-                ) : (
-                  <><strong>{department.name}</strong><div className={styles.actions}>
-                    <Button type="button" variant="quiet" onClick={() => setEditingDepartment(department)}>Editar</Button>
-                    <Button type="button" variant="danger" onClick={() => removeDepartment(department)}>Eliminar</Button>
-                  </div></>
-                )}
-              </div>
-            ))}
-          </div>
-        </Card>
-      ) : null}
     </div>
   );
 }

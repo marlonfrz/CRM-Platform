@@ -13,7 +13,7 @@ type AppShellProps = {
 };
 
 export function AppShell({ active, children, workspace }: AppShellProps) {
-  const canAdminister = workspace.user_role !== "EMPLOYEE";
+  const canAdminister = workspace.user_role !== "EMPLOYEE" && workspace.organization_mode === "BUSINESS";
   return (
     <main className={styles.shell}>
       <aside className={styles.sidebar}>
