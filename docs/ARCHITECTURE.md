@@ -168,7 +168,7 @@ Motivos:
 - no requiere Redis;
 - encaja con una aplicación web privada y un backend central.
 
-La sesión almacenará un hash del token, usuario, expiración, creación y última utilización. Las contraseñas se almacenarán con Argon2id. Las peticiones mutables tendrán protección CSRF compatible con la estrategia de cookie. No se implementará OAuth, SSO o MFA en el MVP, aunque el diseño no debe impedir añadir MFA después.
+La sesión almacenará un hash del token opaco, un hash del token CSRF, usuario, expiración, creación y última utilización. Las contraseñas se almacenarán con Argon2id. Las peticiones mutables tendrán protección CSRF de doble envío: cookie legible por el frontend, cabecera `X-CSRF-Token` y comparación adicional con el hash asociado a la sesión. No se implementará OAuth, SSO o MFA en el MVP, aunque el diseño no debe impedir añadir MFA después.
 
 ### 3.6 API
 
@@ -395,7 +395,7 @@ Es append-only desde la aplicación. No almacena contraseñas, tokens, descripci
 
 El token original solo viaja en la cookie; la base de datos guarda su hash.
 
-Al desactivar un usuario o cambiar su contraseña, el backend revoca todas sus sesiones en la misma operación transaccional. La sesión tiene una caducidad deslizante de 8 horas: cada acceso autenticado válido actualiza `last_used_at` y renueva el token de sesión; si transcurren 8 horas sin actividad válida, la sesión expira y exige un nuevo login.
+Al desactivar un usuario o cambiar su contraseña, el backend revoca todas sus sesiones en la misma operación transaccional. La sesión tiene una caducidad deslizante de 8 horas: cada acceso autenticado válido actualiza `last_used_at`, `expires_at` y la caducidad de las cookies. El secreto opaco permanece estable durante la sesión para que peticiones simultáneas no se invaliden entre sí; si transcurren 8 horas sin actividad válida, la sesión expira y exige un nuevo login.
 
 ## 5. Autorización
 
