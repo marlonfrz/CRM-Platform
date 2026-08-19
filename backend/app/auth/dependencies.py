@@ -4,12 +4,14 @@ from hmac import compare_digest
 from typing import Annotated
 
 from fastapi import Depends, Header, HTTPException, Request, Response, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.cookies import set_auth_cookies
 from app.config import Settings, get_settings
 from app.db.dependencies import get_db_session
-from app.models import User, UserSession
+from app.models import DepartmentMember, Organization, User, UserSession
+from app.policies import AuthorizationContext
 from app.services.authentication import authenticate_session
 from app.services.exceptions import InvalidSessionError
 
@@ -67,3 +69,30 @@ async def require_csrf(
     ):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid CSRF token")
     return principal
+
+
+async def get_authorization_context(
+    principal: Annotated[Principal, Depends(get_current_principal)],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> AuthorizationContext:
+    organization_mode = await session.scalar(
+        select(Organization.mode).where(Organization.id == principal.user.organization_id)
+    )
+    if organization_mode is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+
+    department_ids = frozenset(
+        await session.scalars(
+            select(DepartmentMember.department_id).where(
+                DepartmentMember.organization_id == principal.user.organization_id,
+                DepartmentMember.user_id == principal.user.id,
+            )
+        )
+    )
+    return AuthorizationContext(
+        user_id=principal.user.id,
+        organization_id=principal.user.organization_id,
+        organization_mode=organization_mode,
+        role=principal.user.role,
+        department_ids=department_ids,
+    )
