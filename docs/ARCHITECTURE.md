@@ -232,9 +232,9 @@ Una instalación tendrá una organización activa en el MVP. El modo se establec
 - `organization_id`
 - `email`
 - `full_name`
-- `password_hash`
+- `password_hash` opcional mientras el usuario está pendiente
 - `role`: `OWNER | ADMIN | EMPLOYEE`
-- `is_active`
+- `status`: `PENDING | ACTIVE | DISABLED`
 - `created_at`
 - `updated_at`
 
@@ -242,7 +242,9 @@ Restricciones:
 
 - email normalizado único por organización;
 - al menos un owner activo debe mantenerse mediante caso de uso transaccional;
-- un usuario inactivo no puede iniciar sesión;
+- un usuario `PENDING` todavía no ha definido contraseña;
+- un usuario `ACTIVE` debe tener `password_hash` y puede autenticarse;
+- un usuario `DISABLED` no puede iniciar sesión y conserva su historial;
 - el rol no codifica el departamento.
 
 ### 4.3 Department

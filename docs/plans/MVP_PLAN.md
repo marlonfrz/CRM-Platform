@@ -77,6 +77,8 @@ Dependencias: Fase 0 para decisiones de herramientas que afecten la estructura.
 
 ### Fase 2 — Modelo de datos fundamental
 
+Estado: completada el 17/08/2026 en `codex/phase-2-data-model`.
+
 Objetivo: representar organización, usuarios y departamentos con integridad en base de datos.
 
 Tareas:
@@ -84,6 +86,7 @@ Tareas:
 - configurar SQLAlchemy y Alembic;
 - crear `Organization`, `User`, `Department` y `DepartmentMember`;
 - añadir `Organization.mode` y sus invariantes para `INDIVIDUAL` y `BUSINESS`;
+- definir `UserStatus` como `PENDING`, `ACTIVE` y `DISABLED` para preparar invitaciones sin implementar todavía el correo;
 - definir UUID, timestamps y enums;
 - implementar restricciones de organización y unicidad;
 - crear el mecanismo de bootstrap del primer owner;
