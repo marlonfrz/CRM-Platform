@@ -1,6 +1,11 @@
+import { redirect } from "next/navigation";
+
+import { isInstallationInitialized } from "@/lib/setup";
+
 import { LoginForm } from "./login-form";
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  if (!(await isInstallationInitialized())) redirect("/setup");
   return (
     <main className="auth-shell">
       <section className="auth-brand">

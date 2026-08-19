@@ -18,6 +18,7 @@ async def bootstrap_organization(
     owner_email: str,
     owner_password: str,
 ) -> tuple[Organization, User]:
+    await session.scalar(select(func.pg_advisory_xact_lock(742918305)))
     organization_count = await session.scalar(select(func.count()).select_from(Organization))
     if organization_count:
         raise InstallationAlreadyInitializedError("The installation is already initialized")

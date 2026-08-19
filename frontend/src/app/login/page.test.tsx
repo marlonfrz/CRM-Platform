@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
-import LoginPage from "./page";
+import { LoginForm } from "./login-form";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: vi.fn(), refresh: vi.fn() }),
@@ -9,9 +9,8 @@ vi.mock("next/navigation", () => ({
 
 describe("LoginPage", () => {
   it("renders the private access form", () => {
-    const markup = renderToStaticMarkup(<LoginPage />);
+    const markup = renderToStaticMarkup(<LoginForm />);
 
-    expect(markup).toContain("Inicia sesión");
     expect(markup).toContain('type="email"');
     expect(markup).toContain('type="password"');
   });

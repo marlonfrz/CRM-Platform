@@ -226,6 +226,10 @@ Todas las entidades usan UUID, marcas temporales en UTC y claves foráneas expl�
 
 Una instalación tendrá una organización activa en el MVP. El modo se establece durante el bootstrap y gobierna las invariantes del caso de uso, no permisos decididos por el frontend.
 
+Cuando la base está vacía, la aplicación muestra un asistente de primer inicio. El backend serializa el bootstrap mediante un bloqueo transaccional y rechaza definitivamente nuevas configuraciones cuando ya existe una organización. El comando administrativo se mantiene como alternativa operativa.
+
+Los códigos de activación de un solo uso, `installation_id` y licencias vinculadas a cliente se reservan para la fase futura de distribución y seguridad. Requerirán un emisor externo o una firma verificable; no se simularán almacenando un código dentro de la misma instalación que pretende proteger.
+
 ### 4.2 User
 
 - `id`
