@@ -1,6 +1,13 @@
 name: crm-platform
 
 services:
+  mailpit:
+    image: axllent/mailpit:v1.30.4
+    ports:
+      - "127.0.0.1:8025:8025"
+    networks:
+      - crm_internal
+
   database:
     image: postgres:17-alpine
     environment:
@@ -27,6 +34,12 @@ services:
     environment:
       APP_ENV: development
       DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://crm_platform:development-only@database:5432/crm_platform}
+      EMAIL_BACKEND: smtp
+      EMAIL_FROM_ADDRESS: ${EMAIL_FROM_ADDRESS:-development@crm.local}
+      EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-CRM Platform}
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      SMTP_STARTTLS: "false"
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
       - ./backend/app:/app/app
@@ -36,6 +49,8 @@ services:
     depends_on:
       database:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health/live')"]
       interval: 10s

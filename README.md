@@ -20,8 +20,10 @@ Services:
 - backend OpenAPI: <http://localhost:8000/docs>
 - backend liveness: <http://localhost:8000/api/v1/health/live>
 - backend readiness: <http://localhost:8000/api/v1/health/ready>
+- development email inbox: <http://localhost:8025>
 
 Copy `.env.example` to `.env` before changing the development defaults. Never reuse the example password in production.
+Mailpit captures development emails locally; it does not deliver them to real recipients.
 
 ## Validation
 
@@ -55,4 +57,4 @@ cd backend
 crm-bootstrap --mode BUSINESS --organization-name "Example Company" --owner-name "Owner Name" --owner-email owner@example.com
 ```
 
-Use `INDIVIDUAL` instead of `BUSINESS` for a single-person installation. The command prompts for the password without echoing it. Email delivery and user invitations are intentionally deferred to the authentication phase.
+Use `INDIVIDUAL` instead of `BUSINESS` for a single-person installation. The command prompts for the password without echoing it. User invitations created in the Docker development environment are available in Mailpit.

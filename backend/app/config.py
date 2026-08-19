@@ -1,5 +1,7 @@
 from functools import lru_cache
+from typing import Literal
 
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -15,6 +17,15 @@ class Settings(BaseSettings):
     session_idle_seconds: int = 8 * 60 * 60
     invitation_lifetime_seconds: int = 72 * 60 * 60
     frontend_public_url: str = "http://localhost:3000"
+    email_backend: Literal["console", "smtp", "disabled"] = "console"
+    email_from_address: str = "development@crm.local"
+    email_from_name: str = "CRM Platform"
+    smtp_host: str = "localhost"
+    smtp_port: int = 1025
+    smtp_starttls: bool = False
+    smtp_username: str | None = None
+    smtp_password: SecretStr | None = None
+    smtp_timeout_seconds: float = 10
 
     @property
     def secure_cookies(self) -> bool:
