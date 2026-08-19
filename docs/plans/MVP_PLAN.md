@@ -132,6 +132,8 @@ Criterios de aceptación:
 
 ### Fase 4 — Motor de autorización
 
+Estado: completada el 19/08/2026 en `codex/phase-4-authorization`.
+
 Objetivo: centralizar roles, alcance departamental y decisiones de acceso.
 
 Tareas:

@@ -401,6 +401,8 @@ Al desactivar un usuario o cambiar su contraseña, el backend revoca todas sus s
 
 La autorización se implementará mediante funciones de política llamadas desde los casos de uso:
 
+El `AuthorizationContext` se construye en el backend a partir del usuario autenticado, el modo de su organización y las membresías departamentales persistidas. Es inmutable y las políticas son funciones puras, de modo que rutas y frontend no pueden aportar roles o alcances autoritativos.
+
 ```text
 authenticated user
     + role
