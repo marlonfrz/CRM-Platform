@@ -113,6 +113,8 @@ Organización propuesta:
 
 No se decide todavía una librería visual concreta porque el contexto no la requiere. Se elegirá al iniciar el frontend comparando mantenimiento, accesibilidad y coste de personalización.
 
+El frontend usa CSS Modules para estilos de componentes y pantallas. `globals.css` queda limitado al reset y a design tokens compartidos. Botones, cards, campos y variantes tipográficas repetibles viven en `components/ui`; las páginas solo definen composición y layout específicos. Las variantes visuales deben representar diferencias semánticas explícitas, no estilos ad hoc.
+
 ### 3.3 Backend
 
 Elección: FastAPI, Python, SQLAlchemy 2, Alembic y Pydantic.

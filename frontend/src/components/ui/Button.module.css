@@ -1,0 +1,6 @@
+.button { padding: .9rem 1rem; border: 1px solid transparent; border-radius: var(--radius-control); font-weight: 750; cursor: pointer; transition: background .15s ease, border-color .15s ease, opacity .15s ease; }
+.button:disabled { opacity: .65; cursor: wait; }
+.primary { background: var(--color-primary); color: white; }
+.primary:hover:not(:disabled) { background: var(--color-primary-dark); }
+.secondary { border-color: #49617f; background: transparent; color: white; }
+.quiet { border-color: var(--color-border); background: var(--color-surface); color: var(--color-text); }

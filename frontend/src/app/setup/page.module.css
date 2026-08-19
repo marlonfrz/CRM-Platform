@@ -1,0 +1,5 @@
+.shell { width: min(100% - 2rem, 62rem); margin: auto; padding: clamp(3rem, 7vw, 6rem) 0; }
+.header { max-width: 45rem; }
+.header h1 { margin: 0; font-size: clamp(2.6rem, 6vw, 4.8rem); letter-spacing: -.05em; }
+.description { line-height: 1.6; }
+.card { margin-top: 2rem; padding: clamp(1.5rem, 4vw, 3rem); border-radius: 1.25rem; box-shadow: 0 1.5rem 4rem rgb(24 47 83 / 10%); }

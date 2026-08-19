@@ -1,0 +1,4 @@
+.field { display: grid; gap: .5rem; font-size: .86rem; font-weight: 700; }
+.input { width: 100%; padding: .85rem 1rem; border: 1px solid #cbd5e3; border-radius: var(--radius-control); outline: none; }
+.input:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px rgb(49 95 213 / 14%); }
+.field small { color: #7a8495; font-weight: 400; }

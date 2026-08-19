@@ -3,6 +3,12 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { Button } from "@/components/ui/Button";
+import { FormField } from "@/components/ui/FormField";
+import { FormError } from "@/components/ui/Text";
+
+import styles from "./login-form.module.css";
+
 export function LoginForm() {
   const router = useRouter();
   const [error, setError] = useState("");
@@ -28,19 +34,13 @@ export function LoginForm() {
   }
 
   return (
-    <form className="login-form" onSubmit={submit}>
-      <label>
-        Correo electrónico
-        <input name="email" type="email" autoComplete="email" required />
-      </label>
-      <label>
-        Contraseña
-        <input name="password" type="password" autoComplete="current-password" required />
-      </label>
-      {error ? <p className="form-error" role="alert">{error}</p> : null}
-      <button type="submit" disabled={submitting}>
+    <form className={styles.form} onSubmit={submit}>
+      <FormField label="Correo electrónico" name="email" type="email" autoComplete="email" required />
+      <FormField label="Contraseña" name="password" type="password" autoComplete="current-password" required />
+      {error ? <FormError>{error}</FormError> : null}
+      <Button type="submit" disabled={submitting}>
         {submitting ? "Entrando…" : "Entrar"}
-      </button>
+      </Button>
     </form>
   );
 }

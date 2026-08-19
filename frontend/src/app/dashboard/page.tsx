@@ -1,7 +1,11 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { Card } from "@/components/ui/Card";
+import { Eyebrow, MutedText } from "@/components/ui/Text";
+
 import { LogoutButton } from "./logout-button";
+import styles from "./page.module.css";
 
 type Workspace = {
   organization_name: string;
@@ -26,39 +30,39 @@ async function loadWorkspace(): Promise<Workspace> {
 export default async function DashboardPage() {
   const workspace = await loadWorkspace();
   return (
-    <main className="dashboard-shell">
-      <aside className="sidebar">
+    <main className={styles.shell}>
+      <aside className={styles.sidebar}>
         <div>
-          <p className="eyebrow">CRM Platform</p>
+          <Eyebrow>CRM Platform</Eyebrow>
           <h2>{workspace.organization_name}</h2>
         </div>
         <nav aria-label="Navegación principal">
-          <a className="nav-item active" href="/dashboard">Resumen</a>
-          <span className="nav-item disabled">Clientes <small>Próximamente</small></span>
+          <a className={`${styles.navItem} ${styles.active}`} href="/dashboard">Resumen</a>
+          <span className={`${styles.navItem} ${styles.disabled}`}>Clientes <small>Próximamente</small></span>
           {workspace.organization_mode === "BUSINESS" ? (
-            <span className="nav-item disabled">Equipo <small>Próximamente</small></span>
+            <span className={`${styles.navItem} ${styles.disabled}`}>Equipo <small>Próximamente</small></span>
           ) : null}
         </nav>
-        <LogoutButton />
+        <LogoutButton className={styles.logout} />
       </aside>
-      <section className="dashboard-content">
-        <header className="dashboard-header">
+      <section className={styles.content}>
+        <header className={styles.header}>
           <div>
-            <p className="eyebrow">Resumen</p>
+            <Eyebrow>Resumen</Eyebrow>
             <h1>Hola, {workspace.user_name}</h1>
-            <p className="muted">Ya estás dentro del espacio protegido del CRM.</p>
+            <MutedText>Ya estás dentro del espacio protegido del CRM.</MutedText>
           </div>
-          <span className="role-badge">{workspace.user_role}</span>
+          <span className={styles.roleBadge}>{workspace.user_role}</span>
         </header>
-        <div className="metric-grid">
-          <article className="metric-card"><span>Organización</span><strong>{workspace.organization_name}</strong></article>
-          <article className="metric-card"><span>Modalidad</span><strong>{workspace.organization_mode === "INDIVIDUAL" ? "Personal" : "Empresa"}</strong></article>
-          <article className="metric-card"><span>Departamentos asignados</span><strong>{workspace.departments.length}</strong></article>
+        <div className={styles.metricGrid}>
+          <Card className={styles.metricCard}><span>Organización</span><strong>{workspace.organization_name}</strong></Card>
+          <Card className={styles.metricCard}><span>Modalidad</span><strong>{workspace.organization_mode === "INDIVIDUAL" ? "Personal" : "Empresa"}</strong></Card>
+          <Card className={styles.metricCard}><span>Departamentos asignados</span><strong>{workspace.departments.length}</strong></Card>
         </div>
-        <section className="content-card">
-          <div><p className="eyebrow">Sesión activa</p><h2>{workspace.user_email}</h2></div>
-          <p>La autenticación, la renovación de sesión y el alcance de permisos se validan en el backend.</p>
-        </section>
+        <Card className={styles.sessionCard}>
+          <div><Eyebrow>Sesión activa</Eyebrow><h2>{workspace.user_email}</h2></div>
+          <MutedText className={styles.sessionDescription}>La autenticación, la renovación de sesión y el alcance de permisos se validan en el backend.</MutedText>
+        </Card>
       </section>
     </main>
   );

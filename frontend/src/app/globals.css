@@ -1,61 +1,21 @@
-:root { color-scheme: light; font-family: Arial, Helvetica, sans-serif; background: #f3f5f8; color: #15223a; }
+:root {
+  color-scheme: light;
+  --color-background: #f3f5f8;
+  --color-surface: #ffffff;
+  --color-text: #15223a;
+  --color-muted: #69758b;
+  --color-primary: #315fd5;
+  --color-primary-dark: #244da9;
+  --color-border: #dce3ee;
+  --color-danger: #b3261e;
+  --radius-control: 0.7rem;
+  --radius-card: 1rem;
+  --shadow-card: 0 0.7rem 2rem rgb(25 43 70 / 5%);
+  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-background);
+  color: var(--color-text);
+}
+
 * { box-sizing: border-box; }
 body { margin: 0; }
 button, input { font: inherit; }
-.eyebrow { margin: 0 0 .65rem; color: #315fd5; font-size: .72rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
-.muted { color: #69758b; }
-.auth-shell { display: grid; min-height: 100vh; grid-template-columns: minmax(0, 1.15fr) minmax(22rem, .85fr); background: #eef2f8; }
-.auth-brand { display: flex; flex-direction: column; justify-content: center; padding: clamp(3rem, 9vw, 9rem); background: linear-gradient(140deg, #0d1f3c, #193f78); color: white; }
-.auth-brand .eyebrow { color: #9ab9ff; }
-.auth-brand h1 { max-width: 12ch; margin: 0; font-size: clamp(2.8rem, 6vw, 5.8rem); line-height: .98; letter-spacing: -.05em; }
-.auth-brand p:last-child { max-width: 34rem; margin-top: 2rem; color: #c7d5ee; font-size: 1.08rem; line-height: 1.7; }
-.login-card { align-self: center; width: min(100% - 3rem, 29rem); margin: auto; padding: 2.5rem; border: 1px solid #dce3ee; border-radius: 1.25rem; background: white; box-shadow: 0 1.5rem 4rem rgb(24 47 83 / 12%); }
-.login-card h2 { margin: 0; font-size: 2rem; }
-.login-form { display: grid; gap: 1.1rem; margin-top: 2rem; }
-.login-form label { display: grid; gap: .5rem; font-size: .86rem; font-weight: 700; }
-.login-form input { width: 100%; padding: .85rem 1rem; border: 1px solid #cbd5e3; border-radius: .7rem; outline: none; }
-.login-form input:focus { border-color: #315fd5; box-shadow: 0 0 0 3px rgb(49 95 213 / 14%); }
-.login-form button, .secondary-button { padding: .9rem 1rem; border: 0; border-radius: .7rem; background: #315fd5; color: white; font-weight: 750; cursor: pointer; }
-.login-form button:disabled { opacity: .65; cursor: wait; }
-.form-error { margin: 0; color: #b3261e; font-size: .88rem; }
-.setup-shell { width: min(100% - 2rem, 62rem); margin: auto; padding: clamp(3rem, 7vw, 6rem) 0; }
-.setup-header { max-width: 45rem; }
-.setup-header h1 { margin: 0; font-size: clamp(2.6rem, 6vw, 4.8rem); letter-spacing: -.05em; }
-.setup-header > p:last-child { color: #69758b; line-height: 1.6; }
-.setup-card { margin-top: 2rem; padding: clamp(1.5rem, 4vw, 3rem); border: 1px solid #dce3ee; border-radius: 1.25rem; background: white; box-shadow: 0 1.5rem 4rem rgb(24 47 83 / 10%); }
-.setup-form { display: grid; gap: 2rem; }
-.setup-form fieldset { padding: 0; border: 0; }
-.setup-form legend { margin-bottom: 1rem; font-size: 1.05rem; font-weight: 800; }
-.mode-grid, .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
-.mode-option { display: grid; grid-template-columns: auto 1fr; gap: .35rem .7rem; padding: 1.15rem; border: 1px solid #d7deea; border-radius: .85rem; cursor: pointer; }
-.mode-option.selected { border-color: #315fd5; background: #f3f6ff; box-shadow: 0 0 0 2px rgb(49 95 213 / 10%); }
-.mode-option input { grid-row: span 2; align-self: start; }
-.mode-option span { color: #69758b; font-size: .82rem; line-height: 1.45; }
-.form-grid label { display: grid; gap: .5rem; font-size: .86rem; font-weight: 700; }
-.form-grid input { padding: .85rem 1rem; border: 1px solid #cbd5e3; border-radius: .7rem; outline: none; }
-.form-grid input:focus { border-color: #315fd5; box-shadow: 0 0 0 3px rgb(49 95 213 / 14%); }
-.form-grid small { color: #7a8495; font-weight: 400; }
-.setup-form > button { justify-self: end; padding: .9rem 1.3rem; border: 0; border-radius: .7rem; background: #315fd5; color: white; font-weight: 750; cursor: pointer; }
-.setup-form > button:disabled { opacity: .65; cursor: wait; }
-.dashboard-shell { display: grid; min-height: 100vh; grid-template-columns: 17rem minmax(0, 1fr); }
-.sidebar { display: flex; flex-direction: column; padding: 2rem 1.5rem; background: #10213c; color: white; }
-.sidebar h2 { margin: 0; font-size: 1.15rem; }
-.sidebar nav { display: grid; gap: .4rem; margin-top: 3rem; }
-.nav-item { display: flex; justify-content: space-between; padding: .8rem .9rem; border-radius: .65rem; color: #c8d4e8; text-decoration: none; }
-.nav-item.active { background: #254a82; color: white; }
-.nav-item.disabled { opacity: .62; }
-.nav-item small { font-size: .65rem; }
-.secondary-button { margin-top: auto; border: 1px solid #49617f; background: transparent; }
-.dashboard-content { padding: clamp(2rem, 5vw, 5rem); }
-.dashboard-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 2rem; }
-.dashboard-header h1 { margin: 0; font-size: clamp(2.2rem, 4vw, 3.8rem); letter-spacing: -.04em; }
-.role-badge { padding: .55rem .8rem; border-radius: 999px; background: #e1e9ff; color: #244da9; font-size: .72rem; font-weight: 800; }
-.metric-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-top: 3rem; }
-.metric-card, .content-card { padding: 1.5rem; border: 1px solid #dfe5ee; border-radius: 1rem; background: white; box-shadow: 0 .7rem 2rem rgb(25 43 70 / 5%); }
-.metric-card { display: grid; gap: .7rem; }
-.metric-card span { color: #6b7688; font-size: .8rem; }
-.metric-card strong { font-size: 1.25rem; }
-.content-card { display: flex; align-items: center; justify-content: space-between; gap: 2rem; margin-top: 1rem; }
-.content-card h2, .content-card p { margin: 0; }
-.content-card > p { max-width: 33rem; color: #657187; line-height: 1.55; }
-@media (max-width: 760px) { .auth-shell { grid-template-columns: 1fr; } .auth-brand { display: none; } .mode-grid, .form-grid { grid-template-columns: 1fr; } .dashboard-shell { grid-template-columns: 1fr; } .sidebar { min-height: auto; } .sidebar nav { margin: 1.5rem 0; } .metric-grid { grid-template-columns: 1fr; } .content-card { align-items: flex-start; flex-direction: column; } }

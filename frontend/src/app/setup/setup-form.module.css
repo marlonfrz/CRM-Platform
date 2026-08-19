@@ -1,0 +1,11 @@
+.form { display: grid; gap: 2rem; }
+.form fieldset { padding: 0; border: 0; }
+.form legend { margin-bottom: 1rem; font-size: 1.05rem; font-weight: 800; }
+.modeGrid, .fieldGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.modeOption { display: grid; grid-template-columns: auto 1fr; gap: .35rem .7rem; padding: 1.15rem; border: 1px solid #d7deea; border-radius: .85rem; cursor: pointer; }
+.selected { border-color: var(--color-primary); background: #f3f6ff; box-shadow: 0 0 0 2px rgb(49 95 213 / 10%); }
+.modeOption input { grid-row: span 2; align-self: start; }
+.modeOption span { color: var(--color-muted); font-size: .82rem; line-height: 1.45; }
+.passwordActions { display: flex; justify-content: flex-end; margin-top: -1.25rem; }
+.submit { justify-self: end; }
+@media (max-width: 760px) { .modeGrid, .fieldGrid { grid-template-columns: 1fr; } }

@@ -1,9 +1,9 @@
 from argon2 import PasswordHasher
-from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Organization, OrganizationMode, User, UserRole, UserStatus
 from app.services.exceptions import InstallationAlreadyInitializedError
+from app.services.installation import is_installation_initialized, lock_installation_setup
 from app.services.normalization import normalize_email, normalize_name
 
 password_hasher = PasswordHasher()
@@ -18,9 +18,8 @@ async def bootstrap_organization(
     owner_email: str,
     owner_password: str,
 ) -> tuple[Organization, User]:
-    await session.scalar(select(func.pg_advisory_xact_lock(742918305)))
-    organization_count = await session.scalar(select(func.count()).select_from(Organization))
-    if organization_count:
+    await lock_installation_setup(session)
+    if await is_installation_initialized(session):
         raise InstallationAlreadyInitializedError("The installation is already initialized")
     if len(owner_password) < 12:
         raise ValueError("The owner password must contain at least 12 characters")

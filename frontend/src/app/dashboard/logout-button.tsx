@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 
+import { Button } from "@/components/ui/Button";
+
 function csrfToken() {
   return document.cookie
     .split("; ")
@@ -9,7 +11,7 @@ function csrfToken() {
     ?.split("=")[1];
 }
 
-export function LogoutButton() {
+export function LogoutButton({ className = "" }: { className?: string }) {
   const router = useRouter();
 
   async function logout() {
@@ -21,5 +23,5 @@ export function LogoutButton() {
     router.refresh();
   }
 
-  return <button className="secondary-button" onClick={logout}>Cerrar sesión</button>;
+  return <Button className={className} variant="secondary" onClick={logout}>Cerrar sesión</Button>;
 }
