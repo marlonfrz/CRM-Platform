@@ -79,6 +79,27 @@ async def test_invalid_credentials_do_not_create_session(
     assert await db_session.scalar(select(UserSession)) is None
 
 
+async def test_workspace_is_derived_from_authenticated_user(
+    db_session: AsyncSession, api_client: AsyncClient
+) -> None:
+    owner = await create_owner(db_session)
+    await login(api_client)
+
+    response = await api_client.get("/api/v1/workspace")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "organization_id": str(owner.organization_id),
+        "organization_name": "Authentication Test",
+        "organization_mode": "BUSINESS",
+        "user_id": str(owner.id),
+        "user_name": "Test Owner",
+        "user_email": "owner@example.com",
+        "user_role": "OWNER",
+        "departments": [],
+    }
+
+
 async def test_pending_user_cannot_login(db_session: AsyncSession, api_client: AsyncClient) -> None:
     owner = await create_owner(db_session)
     pending = User(

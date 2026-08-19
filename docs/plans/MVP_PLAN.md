@@ -159,6 +159,8 @@ Criterios de aceptación:
 
 ### Fase 5 — Administración mínima de organización
 
+Estado: en desarrollo desde el 19/08/2026 en `codex/phase-5-administration`. Primer corte: acceso visual y espacio protegido.
+
 Objetivo: permitir que el owner configure la empresa y que cada rol vea lo que corresponde.
 
 Tareas:
