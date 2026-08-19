@@ -1,0 +1,11 @@
+.shell { display: grid; min-height: 100vh; grid-template-columns: 17rem minmax(0, 1fr); }
+.sidebar { display: flex; flex-direction: column; padding: 2rem 1.5rem; background: #10213c; color: white; }
+.sidebar h2 { margin: 0; font-size: 1.15rem; }
+.navigation { display: grid; gap: .4rem; margin-top: 3rem; }
+.item { display: flex; justify-content: space-between; padding: .8rem .9rem; border-radius: .65rem; color: #c8d4e8; text-decoration: none; }
+.active { background: #254a82; color: white; }
+.disabled { opacity: .62; }
+.item small { font-size: .65rem; }
+.logout { margin-top: auto; }
+.content { min-width: 0; padding: clamp(2rem, 5vw, 5rem); }
+@media (max-width: 760px) { .shell { grid-template-columns: 1fr; } .sidebar { min-height: auto; } .navigation { margin: 1.5rem 0; } }

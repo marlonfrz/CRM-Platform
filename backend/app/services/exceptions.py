@@ -24,3 +24,11 @@ class InvalidCredentialsError(DomainError):
 
 class InvalidSessionError(DomainError):
     pass
+
+
+class AuthorizationDeniedError(DomainError):
+    pass
+
+
+class ResourceConflictError(DomainError):
+    pass

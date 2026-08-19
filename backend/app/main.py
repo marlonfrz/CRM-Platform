@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.db.session import engine
+from app.routers.administration import router as administration_router
 from app.routers.auth import router as auth_router
 from app.routers.health import router as health_router
 from app.routers.setup import router as setup_router
@@ -17,6 +18,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(title="CRM Platform API", version="0.1.0", lifespan=lifespan)
+app.include_router(administration_router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(health_router, prefix="/api/v1")
 app.include_router(setup_router, prefix="/api/v1")

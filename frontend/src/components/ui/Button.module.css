@@ -4,3 +4,4 @@
 .primary:hover:not(:disabled) { background: var(--color-primary-dark); }
 .secondary { border-color: #49617f; background: transparent; color: white; }
 .quiet { border-color: var(--color-border); background: var(--color-surface); color: var(--color-text); }
+.danger { border-color: #efc6c3; background: #fff4f3; color: var(--color-danger); }

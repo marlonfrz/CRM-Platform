@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field, model_validator
 
 from app.models import OrganizationMode
 from app.schemas.auth import AuthenticatedUserResponse
+from app.schemas.common import OrganizationName, PersonName
 
 
 class SetupStatusResponse(BaseModel):
@@ -10,8 +11,8 @@ class SetupStatusResponse(BaseModel):
 
 class SetupRequest(BaseModel):
     mode: OrganizationMode
-    organization_name: str = Field(min_length=1, max_length=200)
-    owner_name: str = Field(min_length=1, max_length=200)
+    organization_name: OrganizationName
+    owner_name: PersonName
     owner_email: str = Field(min_length=3, max_length=320)
     owner_password: str = Field(min_length=12, max_length=512)
     owner_password_confirmation: str = Field(min_length=12, max_length=512)

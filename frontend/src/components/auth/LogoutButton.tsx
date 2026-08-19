@@ -2,23 +2,14 @@
 
 import { useRouter } from "next/navigation";
 
+import { apiRequest } from "@/lib/client-api";
 import { Button } from "@/components/ui/Button";
-
-function csrfToken() {
-  return document.cookie
-    .split("; ")
-    .find((item) => item.startsWith("crm_csrf="))
-    ?.split("=")[1];
-}
 
 export function LogoutButton({ className = "" }: { className?: string }) {
   const router = useRouter();
 
   async function logout() {
-    await fetch("/api/backend/auth/logout", {
-      method: "POST",
-      headers: { "X-CSRF-Token": decodeURIComponent(csrfToken() ?? "") },
-    });
+    await apiRequest("/auth/logout", { method: "POST" });
     router.replace("/login");
     router.refresh();
   }
