@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { FormField } from "@/components/ui/FormField";
 import { FormError } from "@/components/ui/Text";
+import { PasswordConfirmationFields } from "@/components/forms/PasswordConfirmationFields";
 
 import styles from "./setup-form.module.css";
 
@@ -14,7 +15,6 @@ export function SetupForm() {
   const [mode, setMode] = useState<"INDIVIDUAL" | "BUSINESS">("BUSINESS");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [showPasswords, setShowPasswords] = useState(false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -68,13 +68,7 @@ export function SetupForm() {
         <FormField label="Nombre de la organización" name="organizationName" required maxLength={200} />
         <FormField label="Tu nombre completo" name="ownerName" autoComplete="name" required maxLength={200} />
         <FormField label="Correo de acceso" name="ownerEmail" type="email" autoComplete="email" required />
-        <FormField label="Contraseña inicial" name="ownerPassword" type={showPasswords ? "text" : "password"} autoComplete="new-password" minLength={12} required hint="Mínimo 12 caracteres." />
-        <FormField label="Repite la contraseña" name="ownerPasswordConfirmation" type={showPasswords ? "text" : "password"} autoComplete="new-password" minLength={12} required />
-      </div>
-      <div className={styles.passwordActions}>
-        <Button type="button" variant="quiet" onClick={() => setShowPasswords((visible) => !visible)}>
-          {showPasswords ? "Ocultar contraseñas" : "Mostrar contraseñas"}
-        </Button>
+        <PasswordConfirmationFields passwordName="ownerPassword" confirmationName="ownerPasswordConfirmation" />
       </div>
       {error ? <FormError>{error}</FormError> : null}
       <Button className={styles.submit} type="submit" disabled={submitting}>{submitting ? "Configurando…" : "Crear instalación"}</Button>

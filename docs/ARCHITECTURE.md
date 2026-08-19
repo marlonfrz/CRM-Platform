@@ -232,6 +232,8 @@ Cuando la base está vacía, la aplicación muestra un asistente de primer inici
 
 Los códigos de activación de un solo uso, `installation_id` y licencias vinculadas a cliente se reservan para la fase futura de distribución y seguridad. Requerirán un emisor externo o una firma verificable; no se simularán almacenando un código dentro de la misma instalación que pretende proteger.
 
+Las invitaciones de usuarios son distintas de una licencia de instalación. Usan un token aleatorio de un solo uso, conservan únicamente su hash, caducan a las 72 horas y se revocan al reenviar o aceptar. El adaptador de desarrollo escribe el enlace en logs locales; producción rechaza el envío hasta configurar explícitamente SMTP o un proveedor transaccional.
+
 ### 4.2 User
 
 - `id`

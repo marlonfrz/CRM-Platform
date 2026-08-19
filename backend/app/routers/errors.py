@@ -3,6 +3,7 @@ from fastapi import HTTPException, status
 from app.services.exceptions import (
     AuthorizationDeniedError,
     IndividualModeViolationError,
+    LastActiveOwnerError,
     ResourceConflictError,
     ResourceNotFoundError,
 )
@@ -20,4 +21,6 @@ def domain_http_exception(error: Exception) -> HTTPException:
         )
     if isinstance(error, ResourceConflictError):
         return HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Resource conflict")
+    if isinstance(error, LastActiveOwnerError):
+        return HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Last active owner")
     return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid operation")

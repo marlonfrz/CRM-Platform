@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 export type Workspace = {
+  user_id: string;
   organization_name: string;
   organization_mode: "INDIVIDUAL" | "BUSINESS";
   user_name: string;

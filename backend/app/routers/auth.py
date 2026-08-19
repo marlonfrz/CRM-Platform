@@ -7,9 +7,15 @@ from app.auth.cookies import clear_auth_cookies, set_auth_cookies
 from app.auth.dependencies import Principal, get_current_principal, require_csrf
 from app.config import Settings, get_settings
 from app.db.dependencies import get_db_session
-from app.schemas.auth import AuthenticatedUserResponse, ChangePasswordRequest, LoginRequest
+from app.schemas.auth import (
+    AcceptInvitationRequest,
+    AuthenticatedUserResponse,
+    ChangePasswordRequest,
+    LoginRequest,
+)
 from app.services.authentication import change_password, login, logout
-from app.services.exceptions import InvalidCredentialsError
+from app.services.exceptions import InvalidCredentialsError, ResourceNotFoundError
+from app.services.users import accept_invitation
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -77,3 +83,20 @@ async def change_password_route(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Current password is invalid"
         ) from exc
     clear_auth_cookies(response, settings)
+
+
+@router.post("/invitations/accept", status_code=status.HTTP_204_NO_CONTENT)
+async def accept_invitation_route(
+    payload: AcceptInvitationRequest,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> None:
+    if payload.password != payload.password_confirmation:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Passwords do not match"
+        )
+    try:
+        await accept_invitation(session, token=payload.token, password=payload.password)
+    except ResourceNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Invitation not found"
+        ) from exc

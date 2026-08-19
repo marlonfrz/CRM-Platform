@@ -12,6 +12,7 @@ from app.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
     from app.models.department import DepartmentMember
+    from app.models.invitation import UserInvitation
     from app.models.organization import Organization
     from app.models.session import UserSession
 
@@ -45,5 +46,8 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         overlaps="department,members",
     )
     sessions: Mapped[list[UserSession]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+    invitations: Mapped[list[UserInvitation]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )

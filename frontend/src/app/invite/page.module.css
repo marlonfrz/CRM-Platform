@@ -1,0 +1,3 @@
+.shell { display: grid; min-height: 100vh; place-items: center; padding: 2rem; }
+.card { width: min(100%, 38rem); padding: clamp(1.5rem, 5vw, 3rem); }
+.card h1 { margin: 0; font-size: clamp(2rem, 5vw, 3.25rem); letter-spacing: -.04em; }

@@ -15,6 +15,12 @@ class ChangePasswordRequest(BaseModel):
     new_password: str = Field(min_length=12, max_length=512)
 
 
+class AcceptInvitationRequest(BaseModel):
+    token: str = Field(min_length=32, max_length=512)
+    password: str = Field(min_length=12, max_length=512)
+    password_confirmation: str = Field(min_length=12, max_length=512)
+
+
 class AuthenticatedUserResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

@@ -1,0 +1,3 @@
+.form { display: grid; gap: 1rem; margin-top: 1.75rem; }
+.fields { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+@media (max-width: 600px) { .fields { grid-template-columns: 1fr; } }
