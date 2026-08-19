@@ -1,9 +1,10 @@
+from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import User, UserRole, UserStatus
+from app.models import User, UserRole, UserSession, UserStatus
 from app.services.exceptions import LastActiveOwnerError, ResourceNotFoundError
 
 
@@ -26,5 +27,10 @@ async def disable_user(session: AsyncSession, *, user_id: UUID) -> User:
             raise LastActiveOwnerError("The last active owner cannot be disabled")
 
     user.status = UserStatus.DISABLED
+    await session.execute(
+        update(UserSession)
+        .where(UserSession.user_id == user.id, UserSession.revoked_at.is_(None))
+        .values(revoked_at=datetime.now(UTC))
+    )
     await session.flush()
     return user

@@ -16,3 +16,11 @@ class LastActiveOwnerError(DomainError):
 
 class ResourceNotFoundError(DomainError):
     pass
+
+
+class InvalidCredentialsError(DomainError):
+    pass
+
+
+class InvalidSessionError(DomainError):
+    pass

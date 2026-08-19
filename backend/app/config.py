@@ -10,6 +10,13 @@ class Settings(BaseSettings):
     database_url: str = (
         "postgresql+asyncpg://crm_platform:development-only@localhost:5432/crm_platform"
     )
+    session_cookie_name: str = "crm_session"
+    csrf_cookie_name: str = "crm_csrf"
+    session_idle_seconds: int = 8 * 60 * 60
+
+    @property
+    def secure_cookies(self) -> bool:
+        return self.app_env == "production"
 
 
 @lru_cache

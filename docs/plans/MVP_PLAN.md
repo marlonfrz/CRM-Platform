@@ -104,6 +104,8 @@ Criterios de aceptación:
 
 ### Fase 3 — Autenticación
 
+Estado: completada el 19/08/2026 en `codex/phase-3-authentication`.
+
 Objetivo: establecer identidad segura antes de exponer recursos.
 
 Tareas:
@@ -114,7 +116,7 @@ Tareas:
 - cookie segura y protección CSRF;
 - dependencia FastAPI de usuario autenticado;
 - expiración y revocación;
-- renovación de `last_used_at` y del token en cada acceso válido, con expiración tras 8 horas de inactividad;
+- renovación de `last_used_at`, la expiración y la cookie en cada acceso válido, con expiración tras 8 horas de inactividad;
 - desactivación de usuario y revocación de sus sesiones;
 - cambio de contraseña con revocación de todas las sesiones;
 - auditoría mínima de eventos de autenticación relevantes.
