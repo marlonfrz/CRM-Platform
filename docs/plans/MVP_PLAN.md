@@ -182,6 +182,8 @@ Criterios de aceptación:
 
 ### Fase 6 — Clientes globales
 
+Estado: completada el 03/09/2026 en `codex/phase-6-global-clients`. Incluye clientes globales, búsqueda por nombre, ficha editable, contactos múltiples, autorización por organización y auditoría. El acceso operativo del empleado se habilita con las asignaciones de la fase 7.
+
 Objetivo: gestionar una ficha de cliente sencilla y sus personas de contacto sin ligarlos a un departamento.
 
 Tareas:
@@ -207,6 +209,8 @@ Criterios de aceptación:
 
 ### Fase 7 — Asignación de clientes
 
+Estado: implementada el 07/09/2026 en `codex/phase-7-client-assignments`. Incluye migración, API de asignación y retirada, equipo asignado en la ficha y vista «Mis clientes» de solo lectura. Verificación automatizada: 62 pruebas de backend y 14 de frontend superadas; migración aplicada y comprobada en Docker. Pendiente la comprobación visual con una sesión autenticada.
+
 Objetivo: convertir las asignaciones en la base del acceso operativo del empleado.
 
 Tareas:
@@ -228,7 +232,18 @@ Criterios de aceptación:
 - asignar no duplica clientes;
 - las operaciones y eventos de auditoría son atómicos.
 
+Comprobación funcional manual:
+
+1. En modo empresa, crear y activar un empleado con al menos un departamento.
+2. Como owner, abrir una ficha de cliente y asignarlo desde «Equipo asignado».
+3. Como empleado, comprobar que «Mis clientes» permite buscar y consultar únicamente sus clientes asignados y contactos, sin edición.
+4. Como admin, comprobar que puede usar cualquier cliente global, pero solo ve y gestiona asignaciones de empleados con al menos un departamento compartido.
+5. Retirar una asignación y comprobar que la siguiente consulta del empleado ya no permite acceder al cliente; la ficha y sus contactos permanecen.
+6. En modo individual, comprobar que el owner sigue gestionando sus clientes sin controles ni solicitudes de asignación.
+
 ### Fase 8 — Actividades
+
+Estado: implementada el 07/09/2026. Incluye modelo y migración, registro y corrección auditados, filtros y paginación, permisos por rol/departamento/asignación y componentes de ficha para empresa y uso individual. Validación automatizada: 86 pruebas backend y 22 frontend superadas, lint, tipos y build correctos. Pendiente la revisión visual con sesión autenticada.
 
 Objetivo: entregar el núcleo de valor: registrar lo que ocurrió con un cliente.
 
@@ -252,7 +267,22 @@ Criterios de aceptación:
 - owner ve toda la actividad;
 - no se pide departamento cuando solo hay una opción válida.
 
+Comprobación funcional manual:
+
+1. Abrir un cliente y pulsar «Nueva actividad». Registrar tipo, descripción, fecha opcional y próxima acción opcional. La fecha vacía usa la hora actual; las fechas explícitas se introducen en UTC.
+2. Con una membresía, comprobar la atribución automática. Con varias, elegir un departamento permitido. En modo individual, comprobar la ausencia de controles departamentales.
+3. Como admin, comprobar que el listado y sus filtros no muestran actividad de otros departamentos; como empleado, además exigir asignación al cliente. El owner empresarial consulta toda la actividad.
+4. Corregir una actividad reciente sin cambiar su autor ni departamento. Comprobar que después de 24 horas desde su registro no se puede corregir, tampoco como owner.
+5. Cambiar una membresía y comprobar que la actividad conserva su departamento histórico. Retirar una asignación y comprobar que el empleado pierde acceso en la siguiente consulta.
+6. Intentar eliminar un departamento con actividad y comprobar el mensaje de conservación del historial.
+
+No incluye tareas, envío de emails, IA ni el historial unificado de fases posteriores.
+
 ### Fase 9 — Tareas
+
+Estado: implementada el 07/09/2026. Incluye migración, API, tareas en ficha, «Mis tareas», responsable autorizado, fecha opcional, edición de pendientes, finalización idempotente y auditoría transaccional. Suite completa: 118 pruebas backend y 29 frontend superadas; lint, tipos y build correctos.
+
+Migración aplicada y verificada en Docker. Comprobación en navegador con admin de pruebas: acceso a «Mis tareas», apertura del formulario en ficha, responsables disponibles, campos opcionales y maquetación en viewport estrecho. Se canceló el formulario sin guardar datos y se cerró la sesión. Los flujos de escritura y demás roles están cubiertos por las pruebas automatizadas, no por un recorrido visual completo.
 
 Objetivo: representar trabajo pendiente sin mezclarlo con actividad histórica.
 
@@ -272,6 +302,17 @@ Criterios de aceptación:
 - employees gestionan sus tareas según la matriz;
 - no se añaden prioridad, recurrencia ni estados configurables.
 - `due_at` puede ser nulo para tareas abiertas o acciones futuras sin fecha.
+
+Comprobación funcional:
+
+1. En la ficha del cliente, crear una tarea con y sin fecha límite. En empresa, elegir departamento solo cuando haya varias opciones; en individual no se elige departamento ni responsable.
+2. Como admin, elegir un empleado activo del departamento que tenga asignado el cliente. Como empleado, crear una tarea propia y comprobar que no se puede asignar a otra persona.
+3. Consultar «Mis tareas», filtrar por estado y abrir la ficha desde el enlace del cliente. Esta vista solo contiene responsabilidades propias; la ficha ofrece las tareas del alcance autorizado.
+4. Editar una tarea pendiente, cambiar o quitar su fecha y reasignarla como owner/admin. Verificar que desaparece de «Mis tareas» del responsable anterior y aparece al nuevo responsable.
+5. Completar con confirmación y comprobar la fecha de finalización, ausencia de edición posterior y un único evento de auditoría ante repetición.
+6. Retirar la asignación o membresía de un empleado y comprobar que pierde acceso sin destruir la tarea; el owner/admin de su departamento puede reasignarla para recuperar el trabajo.
+
+No incluye prioridades, recurrencia, recordatorios, calendario, reapertura, borrado ni conversión automática de actividades en tareas. La fase 10 no se inicia con esta entrega.
 
 ### Fase 10 — Historial del cliente y dashboards mínimos
 

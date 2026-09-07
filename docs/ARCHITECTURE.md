@@ -356,7 +356,7 @@ Restricciones:
 
 Se separan `occurred_at` y `created_at` para representar cuándo ocurrió la interacción y cuándo se registró.
 
-Las actividades pueden corregirse durante las primeras 24 horas por su autor, por un admin con alcance sobre el departamento o por el owner. No se eliminan físicamente y toda corrección queda auditada.
+Las actividades pueden corregirse durante las primeras 24 horas desde `created_at`, no desde la fecha de la interacción, por su autor, por un admin con alcance sobre el departamento o por el owner. El límite se aplica a los tres roles y exige conservar acceso actual al cliente y a la actividad. No se eliminan físicamente y toda corrección efectiva queda auditada. Autor, cliente y departamento no se pueden modificar; solo tipo, descripción, próxima acción y `occurred_at`. `updated_at` identifica la última corrección.
 
 ### 4.9 Task
 
@@ -365,6 +365,7 @@ Las actividades pueden corregirse durante las primeras 24 horas por su autor, po
 - `client_id`
 - `assigned_to_user_id`
 - `created_by_user_id`
+- `department_id` opcional exclusivamente en modo individual
 - `title`
 - `description` opcional
 - `due_at` opcional
@@ -376,6 +377,19 @@ Las actividades pueden corregirse durante las primeras 24 horas por su autor, po
 No se incluyen prioridad, recurrencia, calendario ni estados configurables porque no están justificados. El usuario asignado debe tener acceso al cliente.
 
 `due_at` es opcional: una tarea puede representar una acción futura todavía sin fecha.
+
+Decisiones de implementación de la fase 9:
+
+- Se añade el departamento explícito para cumplir el alcance departamental aprobado también cuando el responsable tiene varias membresías. Derivarlo siempre del responsable haría que una misma tarea apareciera en departamentos ajenos o cambiara de alcance al mover al usuario. El departamento, el cliente y el creador se fijan al crear; solo se puede reasignar a un responsable elegible para ese departamento.
+- El owner empresarial puede crear y gestionar tareas en cualquier departamento de su organización. El admin gestiona sus tareas y las de empleados dentro del departamento de la tarea; no las de otros admins o propietarios. Puede asignar a sí mismo o a empleados activos de ese departamento con acceso al cliente. El empleado crea y gestiona únicamente sus propias tareas, con membresía departamental y asignación al cliente vigentes.
+- En modo individual, creador y responsable son el único owner y el departamento es nulo. La interfaz no solicita departamento ni selección de responsable.
+- Al retirar acceso al cliente o membresía, el empleado pierde acceso a la tarea, pero esta no se borra. Owner y admin autorizado por el departamento pueden recuperar el trabajo reasignándolo a un responsable elegible. La validación de elegibilidad se aplica al crear y al cambiar responsable; editar el texto o completar no reasigna silenciosamente una tarea antigua.
+- Se separa `POST /clients/{client_id}/tasks/{task_id}/complete` de la edición. Completar es idempotente: establece `completed_at` una vez y no duplica la auditoría ante peticiones repetidas. Las tareas completadas quedan en consulta; no hay eliminación ni reapertura en este corte.
+- `GET /tasks/mine` devuelve únicamente tareas del usuario actual, incluso si es owner o admin. `GET /clients/{client_id}/tasks` aplica el alcance completo del actor para esa ficha y devuelve los candidatos autorizados para el formulario. La API valida en backend los identificadores elegidos; la lista del navegador no concede permisos.
+- Listados paginados (20 por defecto, máximo 100) con filtro por estado. Primero pendientes, luego completadas; dentro de cada grupo, fecha límite ascendente y sin fecha al final, con desempate estable. Se reutiliza la paginación sencilla por offset de actividades. Los filtros de tareas tienen nombres independientes en la URL de la ficha.
+- Claves foráneas compuestas impiden enlaces entre organizaciones. Una restricción exige consistencia entre estado y fecha de finalización. Los departamentos con tareas no pueden eliminarse, aunque no tengan actividades.
+- Eventos `CREATED_TASK`, `UPDATED_TASK`, `REASSIGNED_TASK` y `COMPLETED_TASK` en la misma transacción que la operación. La auditoría guarda referencias, responsable anterior cuando cambia y nombres de campos modificados, no título ni descripción completos.
+- Componentes reutilizados en ficha y «Mis tareas», con CSS Modules propios, controles comunes y manejo compartido de mutaciones. Actividades y tareas comparten la comprobación bloqueante de acceso al cliente y el formato de fechas UTC.
 
 ### 4.10 AuditLog
 
@@ -466,6 +480,16 @@ Flujo de asignación:
 
 Una asignación no da acceso automáticamente a todos los departamentos ni modifica la propiedad global del cliente.
 
+Implementación de la fase 7:
+
+- Se asignan empleados activos con al menos una membresía departamental. Para un admin basta compartir un departamento; no se exige administrar todos los departamentos del empleado.
+- `GET /api/v1/clients/{client_id}/assignments` devuelve asignados y candidatos elegibles. El owner ve todas las asignaciones; el admin solo las de empleados en su alcance actual. La respuesta expone identificador, nombre y estado, no credenciales.
+- `POST` sobre esa ruta asigna; `DELETE /api/v1/clients/{client_id}/assignments/{user_id}` retira. Ambas operaciones requieren CSRF, bloquean la fila del cliente durante la transacción y conservan la restricción única para impedir duplicados concurrentes.
+- La retirada registra `UNASSIGNED_CLIENT` en la misma transacción y no elimina clientes, contactos ni auditoría. El owner puede retirar asignaciones antiguas aunque el usuario haya quedado desactivado o cambiado de rol; el admin sigue sujeto al alcance actual.
+- La asignación es única por cliente y empleado, no por departamento: retirarla elimina el acceso concedido por esa asignación al empleado completo, aunque tenga varias membresías.
+- Se reutiliza `GET /api/v1/clients` con filtrado SQL por asignación para empleados, en lugar de duplicar un endpoint de «Mis clientes». El detalle comprueba el mismo acceso y el empleado no puede editar fichas ni contactos. El siguiente acceso tras la retirada se deniega; no se incorpora actualización en tiempo real.
+- En modo individual, la interfaz no solicita ni muestra asignaciones y el backend rechaza su gestión. No se crean relaciones ficticias.
+
 ## 7. Atribución de actividades al departamento
 
 El cliente no envía un `department_id` autoritativo.
@@ -482,6 +506,16 @@ Flujo:
 8. Se registra `CREATED_ACTIVITY` en la misma transacción.
 
 Guardar `department_id` en la actividad conserva el contexto histórico aunque el usuario cambie de departamento posteriormente.
+
+Implementación de la fase 8:
+
+- API bajo `/api/v1/clients/{client_id}/activities`: `GET` lista, `POST` registra y `PATCH /{activity_id}` corrige los campos editables. No existe endpoint de eliminación. Los cuerpos rechazan campos extra, incluidos identificadores de autor u organización enviados por el navegador.
+- El propietario empresarial puede elegir cualquier departamento existente de su organización; admins y empleados solo sus membresías actuales. Una única opción se resuelve automáticamente; sin opciones no se permite registrar. El owner individual registra sin departamento.
+- El listado aplica organización, acceso al cliente y alcance departamental en backend. Incluye filtros opcionales por tipo y departamento, 20 elementos por defecto (máximo 100) y paginación por offset con orden descendente `occurred_at, id`. Se elige esta paginación sencilla frente a cursores para el volumen inicial; el índice por organización, cliente y fecha permite evolucionarla si se necesita.
+- La ficha utiliza componentes separados para sección, entrada y formulario, cada uno con CSS Modules. Crear y corregir reutilizan el mismo formulario y los controles comunes. Las fechas se envían con zona horaria y se muestran/editan explícitamente en UTC; dejar vacía la fecha al crear registra la hora actual.
+- Las claves foráneas compuestas impiden referencias entre organizaciones. Los departamentos con actividad no pueden eliminarse: se devuelve un conflicto sin alterar sus membresías ni su historial.
+- `CREATED_ACTIVITY` y `UPDATED_ACTIVITY` se confirman en la misma transacción que la actividad; un fallo revierte la operación. La auditoría guarda referencias y nombres de campos modificados, nunca descripciones completas ni próximas acciones. No es un archivo de versiones del contenido.
+- La próxima acción es texto orientativo: no crea tareas ni envía correos. Esas capacidades no se incorporan en esta fase.
 
 ## 8. Historial del cliente
 

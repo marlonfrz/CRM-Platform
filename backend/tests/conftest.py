@@ -54,8 +54,10 @@ async def db_session() -> AsyncIterator[AsyncSession]:
     async with test_engine.begin() as connection:
         await connection.execute(
             text(
-                "TRUNCATE TABLE audit_logs, user_invitations, user_sessions, department_members, "
-                "departments, users, organizations CASCADE"
+                "TRUNCATE TABLE tasks, activities, audit_logs, client_assignments, "
+                "client_contacts, clients, user_invitations, user_sessions, "
+                "department_members, departments, users, "
+                "organizations CASCADE"
             )
         )
 

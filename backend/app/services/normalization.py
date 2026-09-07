@@ -10,3 +10,10 @@ def normalize_name(name: str) -> str:
     if not normalized:
         raise ValueError("A name is required")
     return normalized
+
+
+def normalize_optional_text(value: str | None) -> str | None:
+    if value is None:
+        return None
+    normalized = value.strip()
+    return normalized or None

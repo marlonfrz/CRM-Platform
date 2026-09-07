@@ -1,0 +1,8 @@
+.form { display: grid; gap: 1.25rem; }
+.fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 1.25rem; }
+.form p { margin: 0; }
+.actions { display: flex; flex-wrap: wrap; gap: .75rem; }
+@media (max-width: 680px) {
+  .fields { grid-template-columns: 1fr; }
+  .actions > button { flex: 1; }
+}

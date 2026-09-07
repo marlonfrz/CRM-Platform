@@ -3,7 +3,15 @@ from uuid import UUID
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import Department, DepartmentMember, Organization, OrganizationMode, User
+from app.models import (
+    Activity,
+    Department,
+    DepartmentMember,
+    Organization,
+    OrganizationMode,
+    Task,
+    User,
+)
 from app.policies.authorization import (
     AuthorizationContext,
     can_manage_department,
@@ -146,6 +154,30 @@ async def delete_department(
     department_id: UUID,
 ) -> None:
     department = await _authorized_department(session, authorization, department_id)
+    if (
+        await session.scalar(
+            select(Task.id)
+            .where(
+                Task.organization_id == authorization.organization_id,
+                Task.department_id == department_id,
+            )
+            .limit(1)
+        )
+        is not None
+    ):
+        raise ResourceConflictError("Departments with tasks cannot be deleted")
+    if (
+        await session.scalar(
+            select(Activity.id)
+            .where(
+                Activity.organization_id == authorization.organization_id,
+                Activity.department_id == department_id,
+            )
+            .limit(1)
+        )
+        is not None
+    ):
+        raise ResourceConflictError("Departments with historical activities cannot be deleted")
     add_audit_event(
         session,
         organization_id=authorization.organization_id,
@@ -164,10 +196,12 @@ async def _authorized_department(
     department_id: UUID,
 ) -> Department:
     department = await session.scalar(
-        select(Department).where(
+        select(Department)
+        .where(
             Department.id == department_id,
             Department.organization_id == authorization.organization_id,
         )
+        .with_for_update()
     )
     if department is None:
         raise ResourceNotFoundError("Department not found")

@@ -10,6 +10,7 @@ from app.models.enums import OrganizationMode
 from app.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
+    from app.models.client import Client
     from app.models.department import Department
     from app.models.user import User
 
@@ -24,3 +25,6 @@ class Organization(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     users: Mapped[list[User]] = relationship(back_populates="organization")
     departments: Mapped[list[Department]] = relationship(back_populates="organization")
+    clients: Mapped[list[Client]] = relationship(
+        back_populates="organization", cascade="all, delete-orphan"
+    )

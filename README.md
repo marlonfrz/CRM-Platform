@@ -14,6 +14,12 @@ Private CRM core for individual professionals and organizations.
 docker compose up --build
 ```
 
+Apply database migrations from another terminal before using the application:
+
+```bash
+docker compose exec backend alembic upgrade head
+```
+
 Services:
 
 - frontend: <http://localhost:3000>

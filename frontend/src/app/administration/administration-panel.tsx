@@ -29,7 +29,9 @@ export function AdministrationPanel(props: AdministrationPanelProps) {
       body: body ? JSON.stringify(body) : undefined,
     });
     if (!response.ok) {
-      setError(response.status === 403 ? "No tienes permiso para realizar esta acción." : "No se pudo guardar el cambio.");
+      setError(response.status === 403 ? "No tienes permiso para realizar esta acción."
+        : response.status === 409 && method === "DELETE" ? "No se puede eliminar un departamento con actividades o tareas registradas; debe conservarse su historial."
+        : "No se pudo guardar el cambio.");
       return false;
     }
     router.refresh();
