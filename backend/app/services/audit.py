@@ -4,6 +4,7 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import AuditLog
+from app.schemas.audit import validate_metadata
 
 
 def add_audit_event(
@@ -22,7 +23,7 @@ def add_audit_event(
         action=action,
         entity_type=entity_type,
         entity_id=entity_id,
-        event_data=event_data or {},
+        event_data=validate_metadata(action, entity_type, event_data or {}),
     )
     session.add(event)
     return event

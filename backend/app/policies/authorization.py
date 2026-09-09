@@ -27,6 +27,10 @@ def can_manage_organization(context: AuthorizationContext, organization_id: UUID
     return context.belongs_to_organization(organization_id) and context.is_owner
 
 
+def can_view_audit(context: AuthorizationContext, organization_id: UUID) -> bool:
+    return context.belongs_to_organization(organization_id) and context.is_owner
+
+
 def can_manage_department(
     context: AuthorizationContext, *, organization_id: UUID, department_id: UUID
 ) -> bool:

@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import DateTime, ForeignKey, ForeignKeyConstraint, String, func
+from sqlalchemy import DateTime, ForeignKey, ForeignKeyConstraint, Index, String, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -15,6 +15,7 @@ from app.models.mixins import UUIDPrimaryKeyMixin
 class AuditLog(UUIDPrimaryKeyMixin, Base):
     __tablename__ = "audit_logs"
     __table_args__ = (
+        Index("ix_audit_logs_organization_created_id", "organization_id", "created_at", "id"),
         ForeignKeyConstraint(
             ["organization_id", "actor_user_id"],
             ["users.organization_id", "users.id"],

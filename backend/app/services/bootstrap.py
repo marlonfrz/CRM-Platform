@@ -2,6 +2,7 @@ from argon2 import PasswordHasher
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Organization, OrganizationMode, User, UserRole, UserStatus
+from app.services.audit import add_audit_event
 from app.services.exceptions import InstallationAlreadyInitializedError
 from app.services.installation import is_installation_initialized, lock_installation_setup
 from app.services.normalization import normalize_email, normalize_name
@@ -35,4 +36,12 @@ async def bootstrap_organization(
     )
     session.add_all([organization, owner])
     await session.flush()
+    add_audit_event(
+        session,
+        organization_id=organization.id,
+        actor_user_id=owner.id,
+        action="INITIALIZED_ORGANIZATION",
+        entity_type="ORGANIZATION",
+        entity_id=organization.id,
+    )
     return organization, owner

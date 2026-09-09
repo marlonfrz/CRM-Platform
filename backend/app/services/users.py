@@ -107,7 +107,10 @@ async def create_user(
         action="CREATED_USER",
         entity_type="USER",
         entity_id=user.id,
-        event_data={"email": user.email, "role": user.role.value},
+        event_data={
+            "role": user.role.value,
+            "department_ids": sorted(str(item) for item in department_ids),
+        },
     )
     await send_user_invitation(
         settings=settings, recipient=user.email, recipient_name=user.full_name, token=token
@@ -138,6 +141,9 @@ async def update_user(
         session, authorization.organization_id, department_ids, required=role is not UserRole.OWNER
     )
     previous = {"full_name": user.full_name, "role": user.role.value}
+    previous_department_ids = sorted(
+        str(item.department_id) for item in user.department_memberships
+    )
     user.full_name = normalize_name(full_name)
     user.role = role
     await _replace_memberships(session, user, department_ids)
@@ -148,7 +154,13 @@ async def update_user(
         action="UPDATED_USER",
         entity_type="USER",
         entity_id=user.id,
-        event_data={"previous": previous, "full_name": user.full_name, "role": role.value},
+        event_data={
+            "previous": previous,
+            "full_name": user.full_name,
+            "role": role.value,
+            "previous_department_ids": previous_department_ids,
+            "department_ids": sorted(str(item) for item in department_ids),
+        },
     )
     await session.refresh(user, attribute_names=["department_memberships"])
     return user
@@ -224,6 +236,14 @@ async def resend_invitation(
     token = await _create_invitation(session, user, settings)
     await send_user_invitation(
         settings=settings, recipient=user.email, recipient_name=user.full_name, token=token
+    )
+    add_audit_event(
+        session,
+        organization_id=user.organization_id,
+        actor_user_id=authorization.user_id,
+        action="RESENT_INVITATION",
+        entity_type="USER",
+        entity_id=user.id,
     )
     return user
 

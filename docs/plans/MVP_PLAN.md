@@ -351,6 +351,10 @@ Estos casos están cubiertos por pruebas automatizadas. La fase 11 y su consulta
 
 ### Fase 11 — Auditoría operativa
 
+Estado: implementada el 09/09/2026. Consulta exclusiva de owner empresarial e individual, filtros, paginación, índice, catálogo de metadatos validado y cobertura adicional de bootstrap, reenvío y membresías. Conservación sin purga automática. Contrato y limitaciones en [AUDIT.md](../AUDIT.md). No se inicia la fase 12.
+
+Validación: 151 pruebas backend y 46 frontend superadas; lint, tipos y build correctos. Migración `20260909_0008` aplicada en Docker y `alembic check` sin divergencias. La vista owner está verificada mediante pruebas de renderizado y API; queda pendiente su recorrido visual con una sesión owner, cuya contraseña no se ha modificado ni restablecido.
+
 Objetivo: completar una trazabilidad básica, consultable y segura.
 
 La tabla y los primeros eventos ya existen desde fases tempranas; esta fase cierra cobertura y consulta.

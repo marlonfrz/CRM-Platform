@@ -90,6 +90,7 @@ async def update_client(
 ) -> Client:
     client = await _get_managed_client(session, authorization, client_id, for_update=True)
     previous_name = client.name
+    previous_values = {key: getattr(client, key) for key in ("name", "address", "notes")}
     client.name = normalize_name(name)
     client.address = normalize_optional_text(address)
     client.notes = normalize_optional_text(notes)
@@ -100,7 +101,13 @@ async def update_client(
         action="UPDATED_CLIENT",
         entity_type="CLIENT",
         entity_id=client.id,
-        event_data={"previous_name": previous_name, "name": client.name},
+        event_data={
+            "previous_name": previous_name,
+            "name": client.name,
+            "changed_fields": [
+                key for key, value in previous_values.items() if getattr(client, key) != value
+            ],
+        },
     )
     await session.flush()
     await session.refresh(client, attribute_names=["updated_at"])
@@ -157,6 +164,9 @@ async def update_contact(
     client = await _get_managed_client(session, authorization, client_id)
     contact = await _get_contact(session, client, contact_id, for_update=True)
     previous_name = contact.full_name
+    previous_values = {
+        key: getattr(contact, key) for key in ("full_name", "position", "email", "phone", "notes")
+    }
     contact.full_name = normalize_name(full_name)
     contact.position = normalize_optional_text(position)
     contact.email = _normalize_optional_email(email)
@@ -173,6 +183,9 @@ async def update_contact(
             "client_id": str(client.id),
             "previous_name": previous_name,
             "full_name": contact.full_name,
+            "changed_fields": [
+                key for key, value in previous_values.items() if getattr(contact, key) != value
+            ],
         },
     )
     await session.flush()

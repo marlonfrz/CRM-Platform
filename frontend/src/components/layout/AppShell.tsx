@@ -8,7 +8,7 @@ import type { Workspace } from "@/lib/workspace";
 import styles from "./AppShell.module.css";
 
 type AppShellProps = {
-  active: "dashboard" | "clients" | "administration" | "tasks";
+  active: "dashboard" | "clients" | "administration" | "tasks" | "audit";
   children: ReactNode;
   workspace: Workspace;
 };
@@ -26,6 +26,7 @@ export function AppShell({ active, children, workspace }: AppShellProps) {
           {canAdminister ? (
             <a className={`${styles.item} ${active === "administration" ? styles.active : ""}`} href="/administration">Administración</a>
           ) : null}
+          {workspace.user_role === "OWNER" ? <Link className={`${styles.item} ${active === "audit" ? styles.active : ""}`} href="/audit">Auditoría</Link> : null}
         </nav>
         <LogoutButton className={styles.logout} />
       </aside>

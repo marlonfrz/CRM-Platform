@@ -560,6 +560,8 @@ Los cambios de negocio y su evento de auditoría se confirman en una misma trans
 
 La auditoría de lectura se limitará inicialmente a accesos sensibles que se definan explícitamente; registrar todas las lecturas generaría volumen sin un requisito demostrado.
 
+La fase 11 implementa consulta owner-only por organización, filtros y paginación con índice, un catálogo tipado y limitado de metadatos y cobertura de primer inicio, reenvíos y cambios de membresías. No se permite modificar eventos desde la API. Se conservan sin borrado automático; los datos antiguos se filtran en lectura sin reescribirlos. El contrato, las alternativas elegidas, los límites de inmutabilidad/SMTP y la política operativa se detallan en [AUDIT.md](AUDIT.md).
+
 ## 11. Tests
 
 Prioridad de tests:

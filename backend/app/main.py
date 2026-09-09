@@ -7,6 +7,7 @@ from app.db.session import engine
 from app.routers.activities import router as activities_router
 from app.routers.administration import router as administration_router
 from app.routers.assignments import router as assignments_router
+from app.routers.audit import router as audit_router
 from app.routers.auth import router as auth_router
 from app.routers.clients import router as clients_router
 from app.routers.health import router as health_router
@@ -27,6 +28,7 @@ app.include_router(activities_router, prefix="/api/v1")
 app.include_router(administration_router, prefix="/api/v1")
 app.include_router(assignments_router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/api/v1")
+app.include_router(audit_router, prefix="/api/v1")
 app.include_router(clients_router, prefix="/api/v1")
 app.include_router(health_router, prefix="/api/v1")
 app.include_router(insights_router, prefix="/api/v1")

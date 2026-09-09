@@ -1,0 +1,2 @@
+.header { display: grid; gap: .75rem; margin-bottom: 2rem; }
+.header h1, .header p { margin: 0; }
