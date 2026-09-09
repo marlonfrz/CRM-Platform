@@ -42,7 +42,7 @@ describe("Assignment access in the client page", () => {
     vi.mocked(loadWorkspace).mockResolvedValue({ ...workspace, user_role: "EMPLOYEE" });
     vi.mocked(serverApi).mockResolvedValueOnce(client);
     const markup = renderToStaticMarkup(await ClientPage({ params: Promise.resolve({ clientId }) }));
-    expect(serverApi).toHaveBeenCalledTimes(3);
+    expect(serverApi).toHaveBeenCalledTimes(4);
     expect(markup).toContain("Mis clientes");
     expect(markup).toContain("Test Hotel");
     expect(markup).not.toContain("Equipo asignado");
@@ -54,7 +54,7 @@ describe("Assignment access in the client page", () => {
     vi.mocked(loadWorkspace).mockResolvedValue({ ...workspace, organization_mode: "INDIVIDUAL" });
     vi.mocked(serverApi).mockResolvedValueOnce(client);
     const markup = renderToStaticMarkup(await ClientPage({ params: Promise.resolve({ clientId }) }));
-    expect(serverApi).toHaveBeenCalledTimes(3);
+    expect(serverApi).toHaveBeenCalledTimes(4);
     expect(markup).not.toContain("Equipo asignado");
     expect(markup).toContain("Añadir contacto");
   });

@@ -523,6 +523,18 @@ El historial se construye inicialmente a partir de actividades y tareas, ordenad
 
 El frontend puede presentar una vista unificada, pero cada elemento mantiene su contrato de dominio.
 
+Implementación de la fase 10 (09/09/2026):
+
+- `GET /api/v1/clients/{client_id}/history` valida primero el acceso al cliente y combina consultas autorizadas mediante `UNION ALL`. Admite filtro `kind=ACTIVITY|TASK`, offset y límite de 20 por defecto (máximo 100), con un elemento extra para calcular `has_more`.
+- El orden descendente usa la fecha, el tipo de registro y el UUID como desempate. Una actividad se fecha por `occurred_at`; una tarea, por `completed_at` o, si está pendiente, por `created_at`. Cada tarea aparece una sola vez con su estado actual. Se muestra el autor de la actividad y el responsable de la tarea, no se atribuye la finalización al responsable ni se reconstruyen versiones anteriores. El historial no sustituye a la auditoría de la fase 11.
+- Se elige consulta directa sobre las tablas existentes frente a una tabla de timeline o vista materializada: evita duplicación, sincronización y nuevos procesos. La paginación por offset mantiene la sencillez inicial; puede evolucionar a cursor si el volumen lo exige. Con cambios concurrentes, las páginas no constituyen una instantánea inmutable.
+- `services/scopes.py` centraliza consultas de clientes, actividades y tareas reutilizadas por los listados, el historial y el dashboard. El filtro de autorización se aplica en SQL antes de contar, ordenar o limitar; nunca se recupera un conjunto global para ocultarlo en frontend.
+- `GET /api/v1/dashboard` cuenta clientes, tareas pendientes/completadas y actividades del alcance autorizado. Añade hasta cinco actividades recientes y cinco tareas pendientes, ordenadas por vencimiento (sin fecha al final). Las cantidades se calculan sobre todos los registros autorizados, no solo sobre estos cinco elementos.
+- El owner empresarial obtiene el conjunto de su organización y un resumen por departamento. El admin conserva el catálogo global de clientes, pero actividades, tareas y empleados se restringen a su alcance; sus tareas incluyen las propias y las de empleados, no las de otros admins u owners. Los empleados compartidos se cuentan una sola vez en el total y una vez en cada departamento correspondiente.
+- El empleado recibe sus clientes asignados, sus tareas autorizadas y actividad visible de esos clientes en sus departamentos actuales. El owner individual recibe sus datos sin departamentos, asignaciones ficticias ni métricas de jerarquía. Los campos de gestión no aplicables son nulos y el resumen departamental está vacío.
+- El frontend reutiliza `HistoryItem` en historial y dashboard, separa los indicadores en `MetricCard` y mantiene CSS Modules por componente. Los filtros del historial conservan los de actividades y tareas; no hay edición desde estas vistas ni dashboards configurables.
+- No se añaden dependencias, tablas ni migraciones. Las pruebas cubren roles, organizaciones, modo individual, retirada de acceso, orden/paginación, identificadores coincidentes entre tablas y límites de los resúmenes.
+
 ## 9. Flujo conceptual de IA
 
 La IA se implementará después de completar y validar permisos, actividades e historial.

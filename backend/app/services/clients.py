@@ -4,11 +4,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models import Client, ClientAssignment, ClientContact, UserRole
+from app.models import Client, ClientAssignment, ClientContact
 from app.policies.authorization import AuthorizationContext, can_manage_client, can_view_client
 from app.services.audit import add_audit_event
 from app.services.exceptions import AuthorizationDeniedError, ResourceNotFoundError
 from app.services.normalization import normalize_email, normalize_name, normalize_optional_text
+from app.services.scopes import visible_clients
 
 
 async def list_clients(
@@ -17,17 +18,7 @@ async def list_clients(
     authorization: AuthorizationContext,
     search: str | None = None,
 ) -> list[Client]:
-    statement = select(Client).where(Client.organization_id == authorization.organization_id)
-    if authorization.role is UserRole.EMPLOYEE:
-        statement = statement.where(
-            select(ClientAssignment.id)
-            .where(
-                ClientAssignment.organization_id == authorization.organization_id,
-                ClientAssignment.client_id == Client.id,
-                ClientAssignment.user_id == authorization.user_id,
-            )
-            .exists()
-        )
+    statement = visible_clients(authorization)
     normalized_search = normalize_optional_text(search)
     if normalized_search:
         statement = statement.where(Client.name.icontains(normalized_search, autoescape=True))

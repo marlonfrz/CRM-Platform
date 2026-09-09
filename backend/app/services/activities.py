@@ -24,20 +24,11 @@ from app.services.exceptions import (
     ResourceConflictError,
     ResourceNotFoundError,
 )
+from app.services.scopes import visible_activities
 
 
 def _visible(authorization: AuthorizationContext, client_id: UUID) -> Select[tuple[Activity]]:
-    statement = select(Activity).where(
-        Activity.organization_id == authorization.organization_id,
-        Activity.client_id == client_id,
-    )
-    if authorization.organization_mode is OrganizationMode.INDIVIDUAL:
-        statement = statement.where(Activity.department_id.is_(None))
-    elif not authorization.is_owner:
-        statement = statement.where(Activity.department_id.in_(authorization.department_ids))
-    else:
-        statement = statement.where(Activity.department_id.is_not(None))
-    return statement
+    return visible_activities(authorization).where(Activity.client_id == client_id)
 
 
 def _can_edit(authorization: AuthorizationContext, activity: Activity) -> bool:

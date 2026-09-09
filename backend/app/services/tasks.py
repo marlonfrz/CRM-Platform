@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlalchemy import Select, or_, select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -35,40 +35,7 @@ from app.services.exceptions import (
     ResourceConflictError,
     ResourceNotFoundError,
 )
-
-
-def _visible(authorization: AuthorizationContext) -> Select[tuple[Task]]:
-    statement = select(Task).where(Task.organization_id == authorization.organization_id)
-    if authorization.organization_mode is OrganizationMode.INDIVIDUAL:
-        statement = statement.where(Task.department_id.is_(None))
-    elif not authorization.is_owner:
-        statement = statement.where(Task.department_id.in_(authorization.department_ids))
-    if authorization.role is UserRole.ADMIN:
-        statement = statement.where(
-            or_(
-                Task.assigned_to_user_id == authorization.user_id,
-                select(User.id)
-                .where(
-                    User.id == Task.assigned_to_user_id,
-                    User.organization_id == authorization.organization_id,
-                        User.role == UserRole.EMPLOYEE,
-                    )
-                    .correlate(Task)
-                    .exists(),
-            )
-        )
-    if authorization.role is UserRole.EMPLOYEE:
-        statement = statement.where(
-            Task.assigned_to_user_id == authorization.user_id,
-            select(ClientAssignment.id)
-            .where(
-                ClientAssignment.organization_id == authorization.organization_id,
-                ClientAssignment.client_id == Task.client_id,
-                ClientAssignment.user_id == authorization.user_id,
-            )
-            .exists(),
-        )
-    return statement
+from app.services.scopes import visible_tasks
 
 
 async def task_options(
@@ -130,7 +97,7 @@ async def list_tasks(
     offset: int = 0,
     limit: int = 20,
 ) -> TaskPage:
-    statement = _visible(authorization)
+    statement = visible_tasks(authorization)
     options = None
     if client_id is not None:
         await get_client(session, authorization=authorization, client_id=client_id)
@@ -275,7 +242,7 @@ async def _managed_task(
 ) -> Task:
     await lock_accessible_client(session, authorization, client_id)
     task = await session.scalar(
-        _visible(authorization)
+        visible_tasks(authorization)
         .where(Task.id == task_id, Task.client_id == client_id)
         .with_for_update()
     )

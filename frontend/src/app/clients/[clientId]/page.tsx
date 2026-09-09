@@ -8,6 +8,9 @@ import { ActivityPage, activityQuery, parseActivityFilters } from "@/lib/activit
 import { loadWorkspace, serverApi } from "@/lib/workspace";
 import { TasksPanel } from "@/components/tasks/TasksPanel";
 import { TaskPage, parseTaskFilters, taskApiQuery } from "@/lib/tasks";
+import { HistoryPanel } from "@/components/history/HistoryPanel";
+import { HistoryPage, historyApiQuery, parseHistoryFilters } from "@/lib/insights";
+import { taskPageQuery } from "@/lib/tasks";
 
 import { ClientDetailPanel } from "./client-detail-panel";
 import { ClientAssignments } from "./client-assignments";
@@ -33,6 +36,8 @@ export default async function ClientPage({ params, searchParams }: ClientPagePro
   const activities = await serverApi<ActivityPage>(`/clients/${clientId}/activities?${activityQuery(filters)}`, { notFoundOnDenied: true });
   const taskFilters = parseTaskFilters(query);
   const tasks = await serverApi<TaskPage>(`/clients/${clientId}/tasks?${taskApiQuery(taskFilters)}`, { notFoundOnDenied: true });
+  const historyFilters = parseHistoryFilters(query);
+  const history = await serverApi<HistoryPage>(`/clients/${clientId}/history?${historyApiQuery(historyFilters)}`, { notFoundOnDenied: true });
 
   return (
     <AppShell active="clients" workspace={workspace}>
@@ -43,6 +48,7 @@ export default async function ClientPage({ params, searchParams }: ClientPagePro
         <MutedText>Datos generales y personas de contacto de la organización.</MutedText>
       </header>
       <ClientDetailPanel client={client} canManage={canManage} />
+      <HistoryPanel clientId={client.id} page={history} filters={historyFilters} preservedQuery={taskPageQuery(taskFilters, activityQuery(filters))} />
       <ClientActivities clientId={client.id} page={activities} filters={filters} />
       <TasksPanel clientId={client.id} page={tasks} filters={taskFilters} preservedQuery={activityQuery(filters)} />
       {team ? <ClientAssignments clientId={client.id} team={team} scoped={workspace.user_role === "ADMIN"} /> : null}

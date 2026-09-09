@@ -1,11 +1,2 @@
-.header { display: flex; align-items: flex-start; justify-content: space-between; gap: 2rem; }
-.header h1 { margin: 0; font-size: clamp(2.2rem, 4vw, 3.8rem); letter-spacing: -.04em; }
-.roleBadge { padding: .55rem .8rem; border-radius: 999px; background: #e1e9ff; color: var(--color-primary-dark); font-size: .72rem; font-weight: 800; }
-.metricGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-top: 3rem; }
-.metricCard { display: grid; gap: .7rem; }
-.metricCard span { color: var(--color-muted); font-size: .8rem; }
-.metricCard strong { font-size: 1.25rem; }
-.sessionCard { display: flex; align-items: center; justify-content: space-between; gap: 2rem; margin-top: 1rem; }
-.sessionCard h2, .sessionCard p { margin: 0; }
-.sessionDescription { max-width: 33rem; line-height: 1.55; }
-@media (max-width: 760px) { .metricGrid { grid-template-columns: 1fr; } .sessionCard { align-items: flex-start; flex-direction: column; } }
+.header h1 { margin: .5rem 0 .75rem; font-size: clamp(2rem, 4vw, 3.2rem); letter-spacing: -.035em; }
+.header p { line-height: 1.5; margin-bottom: 0; }

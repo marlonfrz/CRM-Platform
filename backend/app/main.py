@@ -10,6 +10,7 @@ from app.routers.assignments import router as assignments_router
 from app.routers.auth import router as auth_router
 from app.routers.clients import router as clients_router
 from app.routers.health import router as health_router
+from app.routers.insights import router as insights_router
 from app.routers.setup import router as setup_router
 from app.routers.tasks import router as tasks_router
 from app.routers.workspace import router as workspace_router
@@ -28,6 +29,7 @@ app.include_router(assignments_router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(clients_router, prefix="/api/v1")
 app.include_router(health_router, prefix="/api/v1")
+app.include_router(insights_router, prefix="/api/v1")
 app.include_router(setup_router, prefix="/api/v1")
 app.include_router(tasks_router, prefix="/api/v1")
 app.include_router(workspace_router, prefix="/api/v1")

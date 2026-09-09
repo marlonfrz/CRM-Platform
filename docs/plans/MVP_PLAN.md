@@ -316,6 +316,10 @@ No incluye prioridades, recurrencia, recordatorios, calendario, reapertura, borr
 
 ### Fase 10 — Historial del cliente y dashboards mínimos
 
+Estado: implementada el 09/09/2026. Incluye historial autorizado con filtro y paginación, dashboard por rol y modo individual, métricas SQL y componentes reutilizables con CSS Modules. Suite completa: 131 pruebas backend y 38 frontend superadas. No requiere nuevas migraciones ni dependencias. El commit previo a esta fase es `e55a3ea`.
+
+Validación de cierre: lint y tipos de ambos servicios, build de frontend y `git diff --check` correctos. Docker Compose reconstruido con servicios saludables y `alembic check` sin cambios de esquema. Revisión visual en navegador: dashboard de admin y empleado, historial de un cliente existente y filtro «Solo tareas» con estado vacío; sesiones cerradas al terminar, sin modificar datos de negocio. Owner, modo individual, tareas con contenido y paginación múltiple quedan verificados mediante pruebas automatizadas, no mediante un recorrido visual completo. El formato de los nueve archivos Python de la fase pasa; la comprobación global conserva dos avisos previos en `app/schemas/clients.py` y `tests/test_clients.py`, ajenos a esta fase.
+
 Objetivo: convertir actividades y tareas existentes en vistas útiles por rol.
 
 Tareas:
@@ -333,6 +337,17 @@ Criterios de aceptación:
 - el historial identifica quién, departamento, qué y cuándo;
 - no existe constructor de dashboards;
 - no se crea una tabla genérica de timeline sin necesidad.
+
+Comprobación funcional:
+
+1. Abrir Inicio como owner, admin y empleado y contrastar las métricas con los listados permitidos. El admin ve el catálogo global de clientes, no actividad o tareas de otros departamentos.
+2. Abrir la ficha de un cliente y consultar «Historial del cliente»: combinar actividades y tareas, filtrar cada tipo y navegar páginas sin perder los filtros de las otras secciones.
+3. Comprobar que cada actividad identifica autor y fecha; cada tarea identifica responsable, estado actual y fecha de finalización o creación. No se presentan versiones históricas ni se afirma quién completó una tarea a partir de su responsable.
+4. Retirar una asignación o membresía y verificar que los nuevos accesos ya no incluyen registros fuera de alcance, tampoco en los contadores.
+5. En modo individual, comprobar Inicio e historial sin departamentos, equipos ni asignaciones.
+6. Comprobar estados vacíos, los cinco elementos máximos de cada resumen y las tareas sin fecha al final.
+
+Estos casos están cubiertos por pruebas automatizadas. La fase 11 y su consulta de auditoría quedan fuera de esta entrega.
 
 ### Fase 11 — Auditoría operativa
 
