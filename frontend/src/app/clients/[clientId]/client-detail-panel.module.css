@@ -102,12 +102,17 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
   gap: 1rem;
-  align-items: start;
+  align-items: stretch;
 }
 
 .contactCard {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 1.25rem;
+}
+
+.contactCard > .actions {
+  margin-top: auto;
 }
 
 .contactIdentity {
