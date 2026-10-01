@@ -11,7 +11,7 @@ export default async function AuditPageView({ searchParams }: { searchParams?: P
   if (workspace.user_role !== "OWNER") redirect("/dashboard");
   const filters = parseAuditFilters(await searchParams ?? {});
   const invalidRange = Boolean(filters.since && filters.until && filters.since > filters.until);
-  const page = invalidRange ? { items: [], has_more: false } : await serverApi<AuditPage>(`/audit?${auditQuery(filters, true)}`, { notFoundOnDenied: true });
+  const page = invalidRange ? { items: [], actors: [], has_more: false } : await serverApi<AuditPage>(`/audit?${auditQuery(filters, true)}`, { notFoundOnDenied: true });
   return <AppShell active="audit" workspace={workspace}>
     <header className={styles.header}><Eyebrow>Trazabilidad</Eyebrow><h1>Auditoría</h1>
       <MutedText>Quién hizo qué, sobre qué recurso y cuándo. Consulta exclusiva del propietario.</MutedText>

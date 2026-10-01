@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import get_authorization_context
 from app.db.dependencies import get_db_session
 from app.policies.authorization import AuthorizationContext
-from app.schemas.audit import AuditPage
+from app.schemas.audit import AuditCategory, AuditPage
 from app.services.audit_query import list_audit_events
 from app.services.exceptions import DomainError
 
@@ -22,6 +22,7 @@ async def get_audit(
     authorization: Annotated[AuthorizationContext, Depends(get_authorization_context)],
     session: Annotated[AsyncSession, Depends(get_db_session)],
     action: Annotated[str | None, Query(pattern=r"^[A-Z_]+$", max_length=80)] = None,
+    category: AuditCategory | None = None,
     actor_user_id: UUID | None = None,
     entity_id: UUID | None = None,
     since: AwareDatetime | None = None,
@@ -36,6 +37,7 @@ async def get_audit(
             session,
             authorization=authorization,
             action=action,
+            category=category,
             actor_user_id=actor_user_id,
             entity_id=entity_id,
             since=since,

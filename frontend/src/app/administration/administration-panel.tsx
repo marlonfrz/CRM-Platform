@@ -83,10 +83,10 @@ export function AdministrationPanel(props: AdministrationPanelProps) {
                   <Button type="button" variant="quiet" onClick={() => setEditingDepartment(null)}>Cancelar</Button>
                 </form>
               ) : (
-                <><strong>{department.name}</strong><div className={styles.actions}>
+                <><strong>{department.name}</strong>{props.canCreateDepartments ? <div className={styles.actions}>
                   <Button type="button" variant="quiet" onClick={() => setEditingDepartment(department)}>Editar</Button>
                   <Button type="button" variant="danger" onClick={() => removeDepartment(department)}>Eliminar</Button>
-                </div></>
+                </div> : null}</>
               )}
             </div>
           ))}

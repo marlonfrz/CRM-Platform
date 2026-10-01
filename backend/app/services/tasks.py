@@ -1,40 +1,24 @@
-from datetime import UTC, datetime
+"""Compatibility projection for the former task API.
+
+All writes delegate to the unified activity service. New clients should use
+``/clients/{client_id}/activities`` directly.
+"""
+
+from datetime import date
 from uuid import UUID
 
-from sqlalchemy import or_, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
-from app.models import (
-    Client,
-    ClientAssignment,
-    Department,
-    OrganizationMode,
-    Task,
-    User,
-    UserRole,
-    UserStatus,
-)
-from app.models.task import TaskStatus
-from app.policies.authorization import AuthorizationContext, can_manage_task
-from app.schemas.tasks import (
-    TaskCandidate,
-    TaskDepartment,
-    TaskOptions,
-    TaskPage,
-    TaskRequest,
-    TaskResponse,
-    TaskUpdate,
-)
-from app.services.audit import add_audit_event
-from app.services.client_access import lock_accessible_client
+from app.models import Activity, ActivityType, Client, Department, User
+from app.models.activity import ActivityStatus
+from app.policies.authorization import AuthorizationContext
+from app.schemas.activities import ActivityRequest, ActivityUpdate
+from app.schemas.tasks import TaskOptions, TaskPage, TaskRequest, TaskResponse, TaskUpdate
+from app.services.activities import complete_activity, create_activity, update_activity
+from app.services.activity_options import activity_options
 from app.services.clients import get_client
-from app.services.departments import list_departments
-from app.services.exceptions import (
-    AuthorizationDeniedError,
-    ResourceConflictError,
-    ResourceNotFoundError,
-)
+from app.services.exceptions import ResourceConflictError, ResourceNotFoundError
 from app.services.scopes import visible_tasks
 
 
@@ -43,49 +27,7 @@ async def task_options(
     authorization: AuthorizationContext,
     client_id: UUID,
 ) -> TaskOptions:
-    departments = await list_departments(session, authorization=authorization)
-    allowed_ids = {d.id for d in departments}
-    individual = authorization.organization_mode is OrganizationMode.INDIVIDUAL
-    statement = (
-        select(User)
-        .options(selectinload(User.department_memberships))
-        .where(
-            User.organization_id == authorization.organization_id,
-            User.status == UserStatus.ACTIVE,
-            or_(
-                User.role.in_([UserRole.OWNER, UserRole.ADMIN]),
-                select(ClientAssignment.id)
-                .where(
-                    ClientAssignment.organization_id == authorization.organization_id,
-                    ClientAssignment.client_id == client_id,
-                    ClientAssignment.user_id == User.id,
-                )
-                .exists(),
-            ),
-        )
-    )
-    if individual or authorization.role is UserRole.EMPLOYEE:
-        statement = statement.where(User.id == authorization.user_id)
-    elif not authorization.is_owner:
-        statement = statement.where(
-            or_(User.id == authorization.user_id, User.role == UserRole.EMPLOYEE)
-        )
-    candidates = []
-    for user in await session.scalars(statement.order_by(User.full_name, User.id)):
-        ids = (
-            allowed_ids
-            if user.role is UserRole.OWNER
-            else allowed_ids & {m.department_id for m in user.department_memberships}
-        )
-        if individual or ids:
-            candidates.append(
-                TaskCandidate(id=user.id, name=user.full_name, department_ids=sorted(ids))
-            )
-    return TaskOptions(
-        departments=[TaskDepartment(id=d.id, name=d.name) for d in departments],
-        candidates=candidates,
-        individual=individual,
-    )
+    return await activity_options(session, authorization, client_id)
 
 
 async def list_tasks(
@@ -93,7 +35,7 @@ async def list_tasks(
     *,
     authorization: AuthorizationContext,
     client_id: UUID | None = None,
-    status: TaskStatus | None = None,
+    status: ActivityStatus | None = None,
     offset: int = 0,
     limit: int = 20,
 ) -> TaskPage:
@@ -101,23 +43,23 @@ async def list_tasks(
     options = None
     if client_id is not None:
         await get_client(session, authorization=authorization, client_id=client_id)
-        statement = statement.where(Task.client_id == client_id)
-        options = await task_options(session, authorization, client_id)
+        statement = statement.where(Activity.client_id == client_id)
+        options = await activity_options(session, authorization, client_id)
     else:
-        statement = statement.where(Task.assigned_to_user_id == authorization.user_id)
+        statement = statement.where(Activity.assigned_to_user_id == authorization.user_id)
     if status is not None:
-        statement = statement.where(Task.status == status.value)
+        statement = statement.where(Activity.status == status.value)
     rows = (
         await session.execute(
             statement.add_columns(Client.name, User.full_name, Department.name)
-            .join(Client, Client.id == Task.client_id)
-            .join(User, User.id == Task.assigned_to_user_id)
-            .outerjoin(Department, Department.id == Task.department_id)
+            .join(Client, Client.id == Activity.client_id)
+            .join(User, User.id == Activity.assigned_to_user_id)
+            .outerjoin(Department, Department.id == Activity.department_id)
             .order_by(
-                (Task.status == TaskStatus.PENDING.value).desc(),
-                Task.due_at.asc().nulls_last(),
-                Task.created_at.desc(),
-                Task.id.desc(),
+                (Activity.status == ActivityStatus.PENDING.value).desc(),
+                Activity.scheduled_for.asc(),
+                Activity.created_at.desc(),
+                Activity.id.desc(),
             )
             .offset(offset)
             .limit(limit + 1)
@@ -126,54 +68,42 @@ async def list_tasks(
     return TaskPage(
         items=[
             TaskResponse(
-                id=t.id,
-                client_id=t.client_id,
+                id=activity.id,
+                client_id=activity.client_id,
                 client_name=client_name,
-                assigned_to_user_id=t.assigned_to_user_id,
+                assigned_to_user_id=activity.assigned_to_user_id,
                 assigned_to_name=assignee,
-                created_by_user_id=t.created_by_user_id,
-                department_id=t.department_id,
+                created_by_user_id=activity.created_by_user_id,
+                department_id=activity.department_id,
                 department_name=department_name,
-                title=t.title,
-                description=t.description,
-                due_at=t.due_at,
-                status=TaskStatus(t.status),
-                completed_at=t.completed_at,
-                created_at=t.created_at,
-                updated_at=t.updated_at,
+                title=activity.title or activity.description[:200],
+                description=activity.description,
+                due_at=activity.scheduled_for,
+                status=ActivityStatus(activity.status),
+                completed_at=activity.completed_at,
+                created_at=activity.created_at,
+                updated_at=activity.updated_at,
             )
-            for t, client_name, assignee, department_name in rows[:limit]
+            for activity, client_name, assignee, department_name in rows[:limit]
         ],
         has_more=len(rows) > limit,
         options=options,
     )
 
 
-async def _target(
-    session: AsyncSession,
-    authorization: AuthorizationContext,
-    client_id: UUID,
-    user_id: UUID,
-    department_id: UUID | None,
-) -> None:
-    user = await session.scalar(
-        select(User)
-        .where(
-            User.id == user_id,
-            User.organization_id == authorization.organization_id,
+async def _default_type(
+    session: AsyncSession, authorization: AuthorizationContext
+) -> ActivityType:
+    activity_type = await session.scalar(
+        select(ActivityType).where(
+            ActivityType.organization_id == authorization.organization_id,
+            ActivityType.department_id.is_(None),
+            ActivityType.normalized_name == "otro",
         )
-        .with_for_update()
     )
-    if user is None:
-        raise ResourceNotFoundError("Assignee not found")
-    options = await task_options(session, authorization, client_id)
-    candidate = next((u for u in options.candidates if u.id == user_id), None)
-    if candidate is None or (
-        not options.individual and department_id not in candidate.department_ids
-    ):
-        raise AuthorizationDeniedError(
-            "Assignee is inactive, outside scope or has no client access"
-        )
+    if activity_type is None:
+        raise ResourceNotFoundError("Default activity type not found")
+    return activity_type
 
 
 async def create_task(
@@ -182,81 +112,23 @@ async def create_task(
     authorization: AuthorizationContext,
     client_id: UUID,
     payload: TaskRequest,
-) -> Task:
-    await lock_accessible_client(session, authorization, client_id)
-    options = await task_options(session, authorization, client_id)
-    department_id = payload.department_id
-    if options.individual:
-        if department_id is not None:
-            raise AuthorizationDeniedError("Individual tasks have no department")
-    else:
-        if department_id is None and len(options.departments) == 1:
-            department_id = options.departments[0].id
-        if department_id is None:
-            raise ResourceConflictError("Choose an available department")
-        if department_id not in {d.id for d in options.departments}:
-            raise AuthorizationDeniedError("Department outside scope")
-        if (
-            await session.scalar(
-                select(Department.id)
-                .where(
-                    Department.id == department_id,
-                    Department.organization_id == authorization.organization_id,
-                )
-                .with_for_update(read=True)
-            )
-            is None
-        ):
-            raise ResourceNotFoundError("Department no longer exists")
-    target_id = payload.assigned_to_user_id or authorization.user_id
-    await _target(session, authorization, client_id, target_id, department_id)
-    if not can_manage_task(
-        authorization,
-        organization_id=authorization.organization_id,
-        department_id=department_id,
-        is_assigned_to_actor=target_id == authorization.user_id,
-        is_client_assigned=True,
-    ):
-        raise AuthorizationDeniedError("Task creation is not allowed")
-    task = Task(
-        organization_id=authorization.organization_id,
+) -> Activity:
+    activity_type = await _default_type(session, authorization)
+    activities = await create_activity(
+        session,
+        authorization=authorization,
         client_id=client_id,
-        department_id=department_id,
-        assigned_to_user_id=target_id,
-        created_by_user_id=authorization.user_id,
-        title=payload.title,
-        description=payload.description or None,
-        due_at=payload.due_at,
+        payload=ActivityRequest(
+            activity_type_id=activity_type.id,
+            title=payload.title,
+            description=payload.description or payload.title,
+            scheduled_for=payload.due_at.date() if payload.due_at else date.today(),
+            status=ActivityStatus.PENDING,
+            assigned_to_user_id=payload.assigned_to_user_id,
+            department_id=payload.department_id,
+        ),
     )
-    session.add(task)
-    await session.flush()
-    _audit(session, authorization, task, "CREATED_TASK", [])
-    return task
-
-
-async def _managed_task(
-    session: AsyncSession,
-    authorization: AuthorizationContext,
-    client_id: UUID,
-    task_id: UUID,
-) -> Task:
-    await lock_accessible_client(session, authorization, client_id)
-    task = await session.scalar(
-        visible_tasks(authorization)
-        .where(Task.id == task_id, Task.client_id == client_id)
-        .with_for_update()
-    )
-    if task is None:
-        raise ResourceNotFoundError("Task not found")
-    if not can_manage_task(
-        authorization,
-        organization_id=task.organization_id,
-        department_id=task.department_id,
-        is_assigned_to_actor=task.assigned_to_user_id == authorization.user_id,
-        is_client_assigned=True,
-    ):
-        raise AuthorizationDeniedError("Task management is not allowed")
-    return task
+    return activities[0]
 
 
 async def update_task(
@@ -267,34 +139,30 @@ async def update_task(
     task_id: UUID,
     payload: TaskUpdate,
 ) -> None:
-    task = await _managed_task(session, authorization, client_id, task_id)
-    if task.status != TaskStatus.PENDING.value:
-        raise ResourceConflictError("Completed tasks cannot be edited")
-    target_id = payload.assigned_to_user_id or task.assigned_to_user_id
-    if target_id != task.assigned_to_user_id:
-        await _target(session, authorization, client_id, target_id, task.department_id)
-    values = dict(
-        title=payload.title,
-        description=payload.description or None,
-        due_at=payload.due_at,
-        assigned_to_user_id=target_id,
+    await get_client(session, authorization=authorization, client_id=client_id)
+    activity = await session.scalar(
+        visible_tasks(authorization).where(
+            Activity.id == task_id, Activity.client_id == client_id
+        )
     )
-    changed = [k for k, v in values.items() if getattr(task, k) != v]
-    previous_id = task.assigned_to_user_id
-    for key, value in values.items():
-        setattr(task, key, value)
-    if changed:
-        await session.flush()
-        _audit(session, authorization, task, "UPDATED_TASK", changed)
-        if target_id != previous_id:
-            _audit(
-                session,
-                authorization,
-                task,
-                "REASSIGNED_TASK",
-                ["assigned_to_user_id"],
-                previous_id,
-            )
+    if activity is None:
+        raise ResourceNotFoundError("Activity not found")
+    if activity.status != ActivityStatus.PENDING.value:
+        raise ResourceConflictError("Completed activities cannot be edited through the task API")
+    await update_activity(
+        session,
+        authorization=authorization,
+        client_id=client_id,
+        activity_id=task_id,
+        payload=ActivityUpdate(
+            activity_type_id=activity.activity_type_id,
+            title=payload.title,
+            description=payload.description or payload.title,
+            next_action=activity.next_action,
+            scheduled_for=payload.due_at.date() if payload.due_at else activity.scheduled_for,
+            assigned_to_user_id=payload.assigned_to_user_id,
+        ),
+    )
 
 
 async def complete_task(
@@ -304,35 +172,17 @@ async def complete_task(
     client_id: UUID,
     task_id: UUID,
 ) -> None:
-    task = await _managed_task(session, authorization, client_id, task_id)
-    if task.status == TaskStatus.COMPLETED.value:
-        return
-    task.status = TaskStatus.COMPLETED.value
-    task.completed_at = datetime.now(UTC)
-    await session.flush()
-    _audit(session, authorization, task, "COMPLETED_TASK", ["status", "completed_at"])
-
-
-def _audit(
-    session: AsyncSession,
-    authorization: AuthorizationContext,
-    task: Task,
-    action: str,
-    fields: list[str],
-    previous_assignee: UUID | None = None,
-) -> None:
-    add_audit_event(
+    await get_client(session, authorization=authorization, client_id=client_id)
+    activity = await session.scalar(
+        visible_tasks(authorization).where(
+            Activity.id == task_id, Activity.client_id == client_id
+        )
+    )
+    if activity is None:
+        raise ResourceNotFoundError("Activity not found")
+    await complete_activity(
         session,
-        organization_id=task.organization_id,
-        actor_user_id=authorization.user_id,
-        action=action,
-        entity_type="TASK",
-        entity_id=task.id,
-        event_data={
-            "client_id": str(task.client_id),
-            "assigned_to_user_id": str(task.assigned_to_user_id),
-            "department_id": str(task.department_id) if task.department_id else None,
-            "changed_fields": fields,
-            "previous_assigned_to_user_id": str(previous_assignee) if previous_assignee else None,
-        },
+        authorization=authorization,
+        client_id=client_id,
+        activity_id=task_id,
     )

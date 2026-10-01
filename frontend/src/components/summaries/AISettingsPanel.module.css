@@ -1,0 +1,6 @@
+.panel { display: grid; gap: 1.75rem; }
+.panel h2, .panel p { margin-top: 0; }
+.form { display: grid; gap: 1.25rem; max-width: 52rem; }
+.providerHelp { margin: -.55rem 0 0; }
+.form > button { justify-self: start; }
+.success { margin: 0; color: var(--color-success-text); font-weight: 700; }

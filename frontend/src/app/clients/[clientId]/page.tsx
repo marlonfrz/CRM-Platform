@@ -2,19 +2,15 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 
 import { AppShell } from "@/components/layout/AppShell";
+import { ButtonLink } from "@/components/ui/Button";
 import { Eyebrow, MutedText } from "@/components/ui/Text";
 import type { AssignmentTeam, Client } from "@/lib/clients";
 import { ActivityPage, activityQuery, parseActivityFilters } from "@/lib/activities";
 import { loadWorkspace, serverApi } from "@/lib/workspace";
-import { TasksPanel } from "@/components/tasks/TasksPanel";
-import { TaskPage, parseTaskFilters, taskApiQuery } from "@/lib/tasks";
-import { HistoryPanel } from "@/components/history/HistoryPanel";
-import { HistoryPage, historyApiQuery, parseHistoryFilters } from "@/lib/insights";
-import { taskPageQuery } from "@/lib/tasks";
+import { TrackingPanel } from "@/components/history/TrackingPanel";
 
 import { ClientDetailPanel } from "./client-detail-panel";
 import { ClientAssignments } from "./client-assignments";
-import { ClientActivities } from "./client-activities";
 import styles from "./page.module.css";
 
 type ClientPageProps = {
@@ -32,12 +28,11 @@ export default async function ClientPage({ params, searchParams }: ClientPagePro
     ? await serverApi<AssignmentTeam>(`/clients/${clientId}/assignments`, { notFoundOnDenied: true })
     : null;
   const query = await searchParams ?? {};
-  const filters = parseActivityFilters(query);
-  const activities = await serverApi<ActivityPage>(`/clients/${clientId}/activities?${activityQuery(filters)}`, { notFoundOnDenied: true });
-  const taskFilters = parseTaskFilters(query);
-  const tasks = await serverApi<TaskPage>(`/clients/${clientId}/tasks?${taskApiQuery(taskFilters)}`, { notFoundOnDenied: true });
-  const historyFilters = parseHistoryFilters(query);
-  const history = await serverApi<HistoryPage>(`/clients/${clientId}/history?${historyApiQuery(historyFilters)}`, { notFoundOnDenied: true });
+  const activityFilters = parseActivityFilters(query);
+  const activities = await serverApi<ActivityPage>(
+    `/clients/${clientId}/activities?${activityQuery(activityFilters)}`,
+    { notFoundOnDenied: true },
+  );
 
   return (
     <AppShell active="clients" workspace={workspace}>
@@ -46,11 +41,21 @@ export default async function ClientPage({ params, searchParams }: ClientPagePro
         <Eyebrow>Ficha de cliente</Eyebrow>
         <h1>{client.name}</h1>
         <MutedText>Datos generales y personas de contacto de la organización.</MutedText>
+        {canManage ? <div className={styles.headerActions}>
+          <ButtonLink href={`/summaries?client_id=${client.id}`}>
+            Generar resumen de actividad con IA <span aria-hidden="true">→</span>
+          </ButtonLink>
+        </div> : null}
       </header>
       <ClientDetailPanel client={client} canManage={canManage} />
-      <HistoryPanel clientId={client.id} page={history} filters={historyFilters} preservedQuery={taskPageQuery(taskFilters, activityQuery(filters))} />
-      <ClientActivities clientId={client.id} page={activities} filters={filters} />
-      <TasksPanel clientId={client.id} page={tasks} filters={taskFilters} preservedQuery={activityQuery(filters)} />
+      <TrackingPanel
+        key={`${activityFilters.view}:${activityFilters.type}:${activityFilters.department}:${activities.items
+          .map((item) => `${item.id}:${item.updated_at}`)
+          .join(",")}`}
+        clientId={client.id}
+        page={activities}
+        filters={activityFilters}
+      />
       {team ? <ClientAssignments clientId={client.id} team={team} scoped={workspace.user_role === "ADMIN"} /> : null}
     </AppShell>
   );

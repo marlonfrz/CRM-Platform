@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
+import { demoRead } from "@/lib/demo-store";
 
 export type Workspace = {
   user_id: string;
@@ -13,7 +14,9 @@ export type Workspace = {
 
 export async function serverApi<T>(path: string, options: { notFoundOnDenied?: boolean } = {}): Promise<T> {
   const cookieStore = await cookies();
-  const response = await fetch(
+  const response = process.env.DEMO_MODE === "true"
+    ? demoRead(path, cookieStore.get("crm_demo_session")?.value)
+    : await fetch(
     `${process.env.BACKEND_INTERNAL_URL ?? "http://localhost:8000"}/api/v1${path}`,
     { headers: { cookie: cookieStore.toString() }, cache: "no-store" },
   );

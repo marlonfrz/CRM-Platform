@@ -1,0 +1,11 @@
+.section { padding: 1.5rem; border: 1px solid var(--color-border); border-radius: var(--radius-card); background: linear-gradient(145deg, var(--color-surface), #f8faff); box-shadow: 0 .5rem 1.5rem rgb(25 43 70 / 4%); }
+.section h2 { margin-top: 0; color: var(--color-primary-dark); font-size: 1.2rem; }
+.section h3 { font-size: 1rem; margin-top: 1.5rem; }
+.content, .section li { white-space: pre-wrap; line-height: 1.6; }
+.section summary { cursor: pointer; color: var(--color-primary); padding: .5rem 0; }
+.section summary:hover { text-decoration: underline; }
+.section summary:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; }
+.section li { margin: .5rem 0; }
+.sources { display: grid; gap: .5rem; list-style: none; padding: 0; margin: 0; }
+.sources li { margin: 0; padding: .75rem; border-left: 3px solid var(--color-primary); border-radius: 0 var(--radius-control) var(--radius-control) 0; background: var(--color-primary-soft); }
+@media (max-width: 680px) { .section { padding: 1rem; } }

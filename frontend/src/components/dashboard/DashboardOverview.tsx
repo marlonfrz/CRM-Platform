@@ -12,44 +12,37 @@ export function DashboardOverview({ data, workspace }: { data: Dashboard; worksp
   const employee = workspace.user_role === "EMPLOYEE";
   const management = !individual && !employee;
   const metrics = [
-    { label: employee || individual ? "Mis clientes" : "Clientes del catálogo global", value: data.metrics.clients },
-    { label: employee || individual ? "Mis tareas pendientes" : "Tareas pendientes en tu alcance", value: data.metrics.pending_tasks },
-    { label: "Tareas completadas", value: data.metrics.completed_tasks },
-    { label: "Actividades visibles", value: data.metrics.activities },
+    { label: "Clientes con actividad hoy", value: data.metrics.today_clients },
+    { label: "Actividades de hoy", value: data.metrics.today_activities },
+    { label: "Pendientes hoy", value: data.metrics.today_pending_tasks },
+    { label: "Completadas hoy", value: data.metrics.completed_tasks },
   ];
-  if (management && data.metrics.active_users !== null && data.metrics.departments !== null) {
-    metrics.push({ label: workspace.user_role === "OWNER" ? "Usuarios activos" : "Empleados activos de tu equipo", value: data.metrics.active_users },
-      { label: "Departamentos", value: data.metrics.departments });
-  }
   return <div className={styles.stack}>
     <div className={styles.metrics}>{metrics.map((metric) => <MetricCard key={metric.label} {...metric} />)}</div>
     <nav className={styles.links} aria-label="Accesos rápidos">
       <Link href="/clients">{employee || individual ? "Ver mis clientes" : "Abrir clientes"}</Link>
       <Link href="/tasks">Ver mis tareas</Link>
     </nav>
-    <div className={styles.columns}>
-      <Card className={styles.panel}><h2>Trabajo pendiente</h2>
-        <MutedText>Hasta cinco tareas de tu alcance, ordenadas por fecha límite. Las que no tienen fecha quedan al final.</MutedText>
-        <div className={styles.list}>{data.pending_tasks.map((entry) => <HistoryItem key={entry.id} entry={entry} compact showClient />)}
-          {!data.pending_tasks.length ? <MutedText className={styles.empty}>No hay tareas pendientes en tu alcance.</MutedText> : null}
+    <div className={styles.dashboardGrid}>
+      <Card className={styles.panel}>
+        <div className={styles.panelHeader}><h2>Actividad de hoy</h2><span>{data.today_activities.length} registros</span></div>
+        <div className={styles.list}>{data.today_activities.map((entry) => <HistoryItem key={entry.id} entry={entry} compact showClient />)}
+          {!data.today_activities.length ? <MutedText className={styles.empty}>No hay actividad registrada para hoy.</MutedText> : null}
         </div>
       </Card>
-      <Card className={styles.panel}><h2>Actividad reciente</h2>
-        <MutedText>Las cinco interacciones más recientes que puedes consultar.</MutedText>
-        <div className={styles.list}>{data.recent_activities.map((entry) => <HistoryItem key={entry.id} entry={entry} compact showClient />)}
-          {!data.recent_activities.length ? <MutedText className={styles.empty}>Todavía no hay actividad visible.</MutedText> : null}
-        </div>
+      <Card className={styles.panel}>
+        <div className={styles.panelHeader}><h2>{management ? "Organización" : "Tu alcance"}</h2>
+          <span>{management ? `${data.departments.length} departamentos` : `${data.metrics.clients} clientes`}</span></div>
+        {management ? <div className={styles.departments}>{data.departments.map((department) => <section className={styles.department} key={department.id}>
+          <div><h3>{department.name}</h3><span>{department.active_employees} {department.active_employees === 1 ? "empleado activo" : "empleados activos"}</span></div>
+          <strong>{department.activities} {department.activities === 1 ? "actividad hoy" : "actividades hoy"}</strong>
+        </section>)}</div> : <dl className={styles.scopeStats}>
+          <div><dt>Clientes visibles</dt><dd>{data.metrics.clients}</dd></div>
+          <div><dt>Seguimiento visible</dt><dd>{data.metrics.activities}</dd></div>
+          <div><dt>Pendientes totales</dt><dd>{data.metrics.pending_tasks}</dd></div>
+        </dl>}
+        {management && !data.departments.length ? <MutedText>No hay departamentos disponibles.</MutedText> : null}
       </Card>
     </div>
-    {management ? <Card className={styles.panel}><h2>{workspace.user_role === "OWNER" ? "Departamentos de la organización" : "Departamentos que administras"}</h2>
-      <div className={styles.departments}>{data.departments.map((department) => <section className={styles.department} key={department.id}>
-        <h3>{department.name}</h3><dl>
-          <div><dt>Empleados activos</dt><dd>{department.active_employees}</dd></div>
-          <div><dt>Actividades visibles</dt><dd>{department.activities}</dd></div>
-          <div><dt>Tareas pendientes</dt><dd>{department.pending_tasks}</dd></div>
-        </dl>
-      </section>)}</div>
-      {!data.departments.length ? <MutedText>No hay departamentos disponibles.</MutedText> : null}
-    </Card> : null}
   </div>;
 }

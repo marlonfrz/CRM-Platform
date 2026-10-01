@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "CRM Platform",
+  title: process.env.DEMO_MODE === "true" ? "CRM Platform Demo" : "CRM Platform",
   description: "Private client and business activity management",
 };
 

@@ -1,6 +1,6 @@
 import asyncio
-from datetime import UTC, datetime
-from uuid import uuid4
+from datetime import UTC, date, datetime
+from uuid import UUID, uuid4
 
 import pytest
 from httpx import AsyncClient
@@ -12,6 +12,7 @@ from test_assignments import PASSWORD, Team, login
 from test_assignments import team as team
 
 from app.models import (
+    Activity,
     AuditLog,
     Client,
     ClientAssignment,
@@ -19,12 +20,12 @@ from app.models import (
     DepartmentMember,
     Organization,
     OrganizationMode,
-    Task,
     User,
     UserRole,
     UserStatus,
 )
-from app.services import tasks
+from app.models.activity_type import activity_type_identifier
+from app.services import activities
 from app.services.bootstrap import bootstrap_organization
 
 
@@ -34,6 +35,23 @@ def path(value: Team) -> str:
 
 def body(**kwargs: object) -> dict[str, object]:
     return {"title": "Call the client", "description": "Discuss the open issue", **kwargs}
+
+
+def task_record(**values: object) -> Activity:
+    organization_id = values["organization_id"]
+    assert isinstance(organization_id, UUID)
+    values.setdefault("activity_type_id", activity_type_identifier(organization_id, "otro"))
+    creator = values.pop("created_by_user_id")
+    values.setdefault("user_id", creator)
+    values.setdefault("status", "PENDING")
+    values.setdefault("description", values["title"])
+    values.setdefault("occurred_at", values.get("completed_at"))
+    due_at = values.pop("due_at", None)
+    values.setdefault(
+        "scheduled_for",
+        due_at.date() if isinstance(due_at, datetime) else date.today(),
+    )
+    return Activity(**values)
 
 
 async def test_admin_assigns_employee_edits_completes_and_audit_is_idempotent(
@@ -51,7 +69,7 @@ async def test_admin_assigns_employee_edits_completes_and_audit_is_idempotent(
     assert (await api_client.get("/api/v1/tasks/mine")).json()["items"] == []
     headers = await login(api_client, team.users["employee"])
     item = (await api_client.get("/api/v1/tasks/mine")).json()["items"][0]
-    assert item["due_at"] is None and item["status"] == "PENDING"
+    assert item["due_at"] == date.today().isoformat() and item["status"] == "PENDING"
     assert item["department_id"] == str(team.department.id)
     assert item["created_by_user_id"] == str(team.users["admin"].id)
     assert (
@@ -73,9 +91,15 @@ async def test_admin_assigns_employee_edits_completes_and_audit_is_idempotent(
     assert (
         await api_client.delete(f"{path(team)}/{identifier}", headers=headers)
     ).status_code == 405
-    events = list(await db_session.scalars(select(AuditLog).where(AuditLog.entity_type == "TASK")))
-    assert [e.action for e in events].count("COMPLETED_TASK") == 1
-    assert {e.action for e in events} == {"CREATED_TASK", "UPDATED_TASK", "COMPLETED_TASK"}
+    events = list(
+        await db_session.scalars(select(AuditLog).where(AuditLog.entity_type == "ACTIVITY"))
+    )
+    assert [e.action for e in events].count("COMPLETED_ACTIVITY") == 1
+    assert {e.action for e in events} == {
+        "CREATED_ACTIVITY",
+        "UPDATED_ACTIVITY",
+        "COMPLETED_ACTIVITY",
+    }
     assert all("Discuss the open issue" not in str(e.event_data) for e in events)
 
 
@@ -101,8 +125,8 @@ async def test_owner_reassignment_changes_my_tasks_and_is_audited(
     assert (await api_client.get("/api/v1/tasks/mine")).json()["items"] == []
     await login(api_client, team.users["employee"])
     assert len((await api_client.get("/api/v1/tasks/mine")).json()["items"]) == 1
-    event = await db_session.scalar(select(AuditLog).where(AuditLog.action == "REASSIGNED_TASK"))
-    assert event and event.event_data["previous_assigned_to_user_id"] == str(team.users["owner"].id)
+    event = await db_session.scalar(select(AuditLog).where(AuditLog.action == "UPDATED_ACTIVITY"))
+    assert event and "assigned_to_user_id" in event.event_data["changed_fields"]
 
 
 async def test_employee_can_create_only_own_tasks_on_assigned_clients(
@@ -225,7 +249,7 @@ async def test_revocation_and_membership_change_do_not_destroy_tasks(
             json=body(assigned_to_user_id=str(team.users["admin"].id)),
         )
     ).status_code == 204
-    saved = await db_session.get(Task, identifier)
+    saved = await db_session.get(Activity, identifier)
     assert saved and saved.department_id == team.department.id
 
 
@@ -354,7 +378,7 @@ async def test_cross_organization_foreign_keys(
     }[field]
     with pytest.raises(IntegrityError):
         async with db_session.begin_nested():
-            db_session.add(Task(**values))
+            db_session.add(task_record(**values))
             await db_session.flush()
 
 
@@ -375,7 +399,7 @@ async def test_audit_failure_rolls_back_mutation(
     def fail(*args: object, **kwargs: object) -> None:
         raise RuntimeError("Audit unavailable")
 
-    monkeypatch.setattr(tasks, "add_audit_event", fail)
+    monkeypatch.setattr(activities, "add_audit_event", fail)
     with pytest.raises(RuntimeError, match="Audit unavailable"):
         if operation == "create":
             await api_client.post(path(team), headers=headers, json=body())
@@ -392,11 +416,11 @@ async def test_audit_failure_rolls_back_mutation(
                     else None,
                 ),
             )
-    assert await db_session.scalar(select(func.count()).select_from(Task)) == int(
-        operation != "create"
-    )
+    assert await db_session.scalar(
+        select(func.count()).select_from(Activity)
+    ) == int(operation != "create")
     if identifier:
-        saved = await db_session.get(Task, identifier)
+        saved = await db_session.get(Activity, identifier)
         assert saved and saved.title == "Call the client" and saved.status == "PENDING"
         assert saved.assigned_to_user_id == team.users["admin"].id
 
@@ -413,7 +437,7 @@ async def test_pagination_status_null_due_date_and_department_deletion(
     second = (await api_client.get(f"{path(team)}?limit=2&offset=2")).json()
     assert first["has_more"] and not second["has_more"]
     assert first["items"][0]["due_at"].startswith("2026-09-01")
-    assert second["items"][0]["due_at"] is None
+    assert second["items"][0]["due_at"].startswith("2026-10-01")
     for query in ["limit=101", "offset=-1", "status=OTHER"]:
         assert (await api_client.get(f"{path(team)}?{query}")).status_code == 422
     headers = await login(api_client, team.users["owner"])
@@ -431,7 +455,7 @@ async def test_database_completion_invariant(
     with pytest.raises(IntegrityError):
         async with db_session.begin_nested():
             db_session.add(
-                Task(
+                task_record(
                     organization_id=team.client.organization_id,
                     client_id=team.client.id,
                     assigned_to_user_id=team.users["owner"].id,

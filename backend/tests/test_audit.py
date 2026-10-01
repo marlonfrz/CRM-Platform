@@ -42,6 +42,22 @@ async def test_audit_scope_filters_pagination_and_legacy_privacy(
                 event_data={"role": "EMPLOYEE", "email": "private@example.com", "token": "secret"},
             )
         )
+    assignment_event_id = uuid4()
+    db_session.add(
+        AuditLog(
+            id=assignment_event_id,
+            organization_id=team.client.organization_id,
+            actor_user_id=team.users["owner"].id,
+            action="ASSIGNED_CLIENT",
+            entity_type="CLIENT_ASSIGNMENT",
+            entity_id=uuid4(),
+            created_at=timestamp,
+            event_data={
+                "client_id": str(team.client.id),
+                "user_id": str(team.users["employee"].id),
+            },
+        )
+    )
     db_session.add(
         AuditLog(
             organization_id=other.id,
@@ -71,6 +87,26 @@ async def test_audit_scope_filters_pagination_and_legacy_privacy(
     assert [row["id"] for row in rows] == sorted(map(str, ids), reverse=True)
     assert all(row["metadata"] == {"role": "EMPLOYEE"} for row in rows)
     assert all(row["actor_name"] == "Owner" for row in rows)
+    assert all(row["entity_name"] == "employee" for row in rows)
+    assert {actor["name"] for actor in first.json()["actors"]} >= {"Owner", "employee"}
+    assignment = (
+        await api_client.get("/api/v1/audit?action=ASSIGNED_CLIENT")
+    ).json()["items"][0]
+    assert assignment["entity_name"] == f"employee · {team.client.name}"
+    assert assignment["metadata_names"] == {
+        "client_id": team.client.name,
+        "user_id": "employee",
+    }
+    team_events = (await api_client.get("/api/v1/audit?category=TEAM")).json()["items"]
+    assert len(team_events) == 3
+    assert {item["action"] for item in team_events} == {"CREATED_USER"}
+    client_events = (await api_client.get("/api/v1/audit?category=CLIENTS")).json()["items"]
+    assert [item["action"] for item in client_events] == ["ASSIGNED_CLIENT"]
+    access_events = (await api_client.get("/api/v1/audit?category=ACCESS")).json()["items"]
+    assert access_events and {item["action"] for item in access_events} <= {
+        "AUTH_LOGIN",
+        "AUTH_LOGOUT",
+    }
     assert "private@example.com" not in first.text and "secret" not in first.text
     assert (
         await api_client.get("/api/v1/audit", params={"entity_id": str(foreign_entity_id)})
@@ -91,6 +127,7 @@ async def test_audit_scope_filters_pagination_and_legacy_privacy(
         "limit=101",
         "actor_user_id=invalid",
         "action=bad",
+        "category=INVALID",
         "since=2026-01-01T00:00:00",
         "since=2026-02-01T00:00:00Z&until=2026-01-01T00:00:00Z",
     ],

@@ -36,17 +36,20 @@ describe("Assignment access in the client page", () => {
     expect(serverApi).toHaveBeenCalledWith(`/clients/${clientId}/assignments`, { notFoundOnDenied: true });
     expect(markup).toContain("Equipo asignado");
     expect(markup).toContain("No hay empleados disponibles");
+    expect(markup).toContain(`href="/summaries?client_id=${clientId}"`);
+    expect(markup).toContain("Generar resumen de actividad con IA");
   });
 
   it("lets an assigned employee read the client without management controls", async () => {
     vi.mocked(loadWorkspace).mockResolvedValue({ ...workspace, user_role: "EMPLOYEE" });
     vi.mocked(serverApi).mockResolvedValueOnce(client);
     const markup = renderToStaticMarkup(await ClientPage({ params: Promise.resolve({ clientId }) }));
-    expect(serverApi).toHaveBeenCalledTimes(4);
+    expect(serverApi).toHaveBeenCalledTimes(2);
     expect(markup).toContain("Mis clientes");
     expect(markup).toContain("Test Hotel");
     expect(markup).not.toContain("Equipo asignado");
     expect(markup).not.toContain("Añadir contacto");
+    expect(markup).not.toContain("Generar resumen de actividad con IA");
     expect(markup).not.toContain(">Editar<");
   });
 
@@ -54,7 +57,7 @@ describe("Assignment access in the client page", () => {
     vi.mocked(loadWorkspace).mockResolvedValue({ ...workspace, organization_mode: "INDIVIDUAL" });
     vi.mocked(serverApi).mockResolvedValueOnce(client);
     const markup = renderToStaticMarkup(await ClientPage({ params: Promise.resolve({ clientId }) }));
-    expect(serverApi).toHaveBeenCalledTimes(4);
+    expect(serverApi).toHaveBeenCalledTimes(2);
     expect(markup).not.toContain("Equipo asignado");
     expect(markup).toContain("Añadir contacto");
   });

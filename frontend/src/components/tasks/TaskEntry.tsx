@@ -25,17 +25,18 @@ export function TaskEntry({ task, options }: { task: Task; options: TaskOptions 
   return (
     <article className={styles.entry}>
       <header className={styles.header}>
-        <div><h3>{task.title}</h3><MutedText>{task.assigned_to_name}{task.department_name ? ` · ${task.department_name}` : ""}</MutedText></div>
-        <span className={pending ? styles.pending : styles.completed}>{pending ? "Pendiente" : "Completada"}</span>
+        <div><span className={pending ? styles.pending : styles.completed}>{pending ? "Pendiente" : "Completada"}</span>
+          <h3>{task.title}</h3></div>
+        <time>{task.due_at ? formatUtcTimestamp(task.due_at) : "Sin fecha límite"}</time>
       </header>
-      {!options ? <Link href={`/clients/${task.client_id}#tasks`}>{task.client_name}</Link> : null}
       {editing && options && pending ? <TaskForm clientId={task.client_id} task={task} options={options} onDone={(saved) => {
         setEditing(false); if (saved) setMessage("Cambios guardados.");
       }} /> : (
         <>
           {task.description ? <p className={styles.description}>{task.description}</p> : null}
-          <MutedText>{task.due_at ? `Fecha límite: ${formatUtcTimestamp(task.due_at)}` : "Sin fecha límite"}</MutedText>
-          {task.completed_at ? <MutedText>Completada: {formatUtcTimestamp(task.completed_at)}</MutedText> : null}
+          <p className={styles.meta}>{!options ? <Link href={`/clients/${task.client_id}?tracking_filter=${pending ? "TASK_PENDING" : "TASK_COMPLETED"}#tracking`}>{task.client_name}</Link> : null}
+            {!options ? " · " : ""}{task.assigned_to_name}{task.department_name ? ` · ${task.department_name}` : ""}</p>
+          {task.completed_at ? <MutedText className={styles.timestamp}>Completada: {formatUtcTimestamp(task.completed_at)}</MutedText> : null}
           {pending ? <div className={styles.actions}>
             {confirming ? <><p>¿Marcar esta tarea como completada?</p>
               <Button type="button" disabled={busy} onClick={() => void complete()}>Confirmar finalización</Button>

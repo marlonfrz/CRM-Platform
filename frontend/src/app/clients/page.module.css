@@ -14,14 +14,22 @@
 }
 
 .directory {
-  padding: clamp(1.5rem, 3vw, 2rem);
+  display: grid;
+  grid-template-columns: minmax(16rem, .72fr) minmax(0, 1.28fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.clientListPanel,
+.clientDetail {
+  padding: clamp(1.25rem, 2.5vw, 1.75rem);
 }
 
 .directoryHeader {
   display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 1.5rem;
+  align-items: stretch;
+  flex-direction: column;
+  gap: 1rem;
   margin-bottom: 1.75rem;
 }
 
@@ -35,16 +43,21 @@
 }
 
 .search {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: end;
   gap: 0.65rem;
+  width: 100%;
 }
 
 .search label {
-  width: min(22rem, 42vw);
+  min-width: 0;
+  width: 100%;
 }
 
 .clear {
+  grid-column: 1 / -1;
+  justify-self: start;
   padding: 0.85rem 0.35rem;
   color: var(--color-primary-dark);
   font-weight: 700;
@@ -55,67 +68,97 @@
   text-decoration: underline;
 }
 
-.clientGrid {
+.clientList {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
-  gap: 1rem;
+  gap: .45rem;
 }
 
-.clientLink {
+.clientRow {
+  display: block;
+  padding: .9rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
   color: inherit;
   text-decoration: none;
+  transition: border-color .15s ease, background .15s ease;
 }
 
-.clientCard {
+.clientRow:hover,
+.clientRow:focus-visible,
+.selectedClient {
+  border-color: #c9d6f8;
+  background: var(--color-primary-soft);
+}
+
+.clientRow:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.clientRow strong,
+.clientRow span {
+  display: block;
+}
+
+.clientRow span {
+  margin-top: .25rem;
+  overflow: hidden;
+  color: var(--color-muted);
+  font-size: .74rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detailHeader,
+.contactsHeading,
+.trackingHeading {
   display: flex;
-  min-height: 13rem;
-  height: 100%;
-  flex-direction: column;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 1.25rem;
+}
+
+.detailHeader { align-items: flex-start; }
+.detailHeader h2 { margin: .25rem 0 0; font-size: 1.65rem; }
+.detailHeader p { margin: .45rem 0 0; color: var(--color-muted); }
+.clientLabel { color: var(--color-primary); font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.contactsHeading { margin-top: 1.5rem; }
+.trackingHeading { margin-top: 1.65rem; padding-top: 1.4rem; border-top: 1px solid var(--color-border); }
+.contactsHeading h3, .trackingHeading h3 { margin: 0; font-size: 1rem; }
+.contactsHeading span, .trackingHeading span { color: var(--color-muted); font-size: .72rem; }
+
+.contactGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .75rem;
+  margin-top: .75rem;
+}
+
+.contactCard {
+  padding: .85rem;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
-  background: #fbfcfe;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  border-radius: var(--radius-control);
+  background: var(--color-surface-muted);
+}
+.contactCard > span { color: var(--color-muted); font-size: .68rem; font-weight: 700; text-transform: uppercase; }
+.contactCard strong, .contactCard a, .contactCard p { display: block; }
+.contactCard strong { margin-top: .3rem; overflow-wrap: anywhere; font-size: .9rem; }
+.contactCard a { margin-top: .35rem; color: var(--color-primary); font-size: .74rem; overflow-wrap: anywhere; text-decoration: none; }
+.contactCard p { margin: .35rem 0 0; font-size: .74rem; }
+
+.trackingList {
+  display: grid;
+  gap: .75rem;
+  margin-top: .75rem;
 }
 
-.clientLink:hover .clientCard,
-.clientLink:focus-visible .clientCard {
-  border-color: #b9c8df;
-  box-shadow: 0 0.7rem 1.5rem rgb(25 43 70 / 8%);
-  transform: translateY(-2px);
-}
-
-.clientLink:focus-visible {
-  border-radius: var(--radius-card);
-  outline: 3px solid rgb(49 95 213 / 30%);
-  outline-offset: 3px;
-}
-
-.clientLabel {
-  color: var(--color-primary);
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.clientCard h3 {
-  margin: 0.4rem 0 0;
-  font-size: 1.25rem;
-  overflow-wrap: anywhere;
-}
-
-.clientCard p {
-  margin: 0;
-  color: var(--color-muted);
-  line-height: 1.5;
-}
-
-.open {
-  color: var(--color-primary-dark);
-  font-weight: 750;
+.compactEmpty {
+  display: block;
+  margin: .75rem 0 0;
+  padding: 1.25rem;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-control);
+  text-align: center;
 }
 
 .empty {
@@ -136,15 +179,10 @@
   color: var(--color-muted);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .clientCard {
-    transition: none;
-  }
-}
-
 @media (max-width: 760px) {
+  .directory { grid-template-columns: 1fr; }
   .directoryHeader,
-  .search {
+  .detailHeader {
     align-items: stretch;
     flex-direction: column;
   }
@@ -153,7 +191,11 @@
     width: 100%;
   }
 
+  .search { grid-template-columns: 1fr; }
+
   .clear {
     text-align: center;
   }
+
+  .contactGrid { grid-template-columns: 1fr; }
 }

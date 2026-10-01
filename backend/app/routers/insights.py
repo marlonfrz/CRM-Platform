@@ -1,4 +1,4 @@
-from typing import Annotated, Literal
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_authorization_context
 from app.db.dependencies import get_db_session
+from app.models.activity import ActivityStatus
 from app.policies.authorization import AuthorizationContext
 from app.schemas.insights import DashboardResponse, HistoryPage
 from app.services.exceptions import DomainError
@@ -28,7 +29,9 @@ async def get_history(
     client_id: UUID,
     authorization: Authorization,
     session: Database,
-    kind: Literal["ACTIVITY", "TASK"] | None = None,
+    activity_status: ActivityStatus | None = None,
+    activity_type_id: UUID | None = None,
+    scheduled: bool | None = None,
     offset: Annotated[int, Query(ge=0, le=100000)] = 0,
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> HistoryPage:
@@ -37,7 +40,9 @@ async def get_history(
             session,
             authorization=authorization,
             client_id=client_id,
-            kind=kind,
+            activity_status=activity_status,
+            activity_type_id=activity_type_id,
+            scheduled=scheduled,
             offset=offset,
             limit=limit,
         )

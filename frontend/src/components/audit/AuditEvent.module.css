@@ -3,6 +3,8 @@
 .header h2 { font-size: 1.05rem; margin: 0; }
 .header time { font-size: .85rem; color: var(--color-muted); flex-shrink: 0; }
 .event p { margin: .65rem 0 0; }
+.actor strong, .resource strong { color: var(--color-text); }
+.resource { display: block; margin-top: .4rem; }
 .details { margin-top: 1rem; }
 .details summary { cursor: pointer; color: var(--color-primary); font-weight: 600; padding: .35rem 0; }
 .details summary:hover { text-decoration: underline; }

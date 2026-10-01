@@ -18,6 +18,9 @@ export function TasksPanel({ page, filters, clientId, preservedQuery = "" }: Pro
   const [message, setMessage] = useState("");
   const path = clientId ? `/clients/${clientId}` : "/tasks";
   const canCreate = !!clientId && !!page.options?.candidates.length;
+  const orderedTasks = [...page.items].sort((left, right) =>
+    left.status === right.status ? 0 : left.status === "PENDING" ? -1 : 1,
+  );
   return (
     <Card className={styles.card} id="tasks" aria-label={clientId ? "Tareas del cliente" : "Mis tareas"}>
       <header className={styles.header}><div><h2>{clientId ? "Tareas del cliente" : "Trabajo pendiente y completado"}</h2>
@@ -35,7 +38,7 @@ export function TasksPanel({ page, filters, clientId, preservedQuery = "" }: Pro
         <Button type="submit" variant="quiet">Filtrar tareas</Button>
       </form>
       <div className={styles.list}>
-        {page.items.map((task) => <TaskEntry key={task.id} task={task} options={page.options} />)}
+        {orderedTasks.map((task) => <TaskEntry key={task.id} task={task} options={page.options} />)}
         {!page.items.length ? <MutedText className={styles.empty}>No hay tareas visibles con este filtro.</MutedText> : null}
       </div>
       {filters.offset > 0 || page.has_more ? <nav className={styles.pagination} aria-label="Páginas de tareas">

@@ -2,35 +2,135 @@
 
 import { useState } from "react";
 
+import { useActivityMutation } from "@/components/activities/useActivityMutation";
 import { Button } from "@/components/ui/Button";
-import { MutedText } from "@/components/ui/Text";
-import { Activity, activityTimestamp, activityTypes } from "@/lib/activities";
+import { FormError, MutedText } from "@/components/ui/Text";
+import { Activity, ActivityPage, activityDate, activityTimestamp } from "@/lib/activities";
+
 import { ActivityForm } from "./activity-form";
 import styles from "./activity-entry.module.css";
 
-export function ActivityEntry({ clientId, activity }: { clientId: string; activity: Activity }) {
+type Props = {
+  clientId: string;
+  activity: Activity;
+  options: Pick<ActivityPage, "departments" | "candidates" | "activity_types" | "can_create">;
+};
+
+export function ActivityEntry({ clientId, activity, options }: Props) {
   const [editing, setEditing] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [confirming, setConfirming] = useState<"COMPLETE" | "DELETE" | null>(null);
+  const [message, setMessage] = useState("");
+  const { mutate, error, busy } = useActivityMutation();
+  const pending = activity.status === "PENDING";
+  const heading = activity.title || activity.activity_type_name;
+
+  async function complete() {
+    if (await mutate(`/clients/${clientId}/activities/${activity.id}/complete`, "POST")) {
+      setConfirming(null);
+      setMessage("Actividad completada.");
+    }
+  }
+
+  async function remove(scope: "THIS" | "THIS_AND_FOLLOWING") {
+    if (await mutate(
+      `/clients/${clientId}/activities/${activity.id}?scope=${scope}`,
+      "DELETE",
+    )) {
+      setConfirming(null);
+      setMessage("Actividad eliminada.");
+    }
+  }
+
   return (
     <article className={styles.entry}>
       <header className={styles.header}>
         <div>
-          <h3>{activityTypes[activity.type]}</h3>
-          <MutedText>{activity.user_name}{activity.department_name ? ` · ${activity.department_name}` : ""}</MutedText>
+          <span className={styles.type}>{activity.activity_type_name}</span>
+          <h3>{heading}</h3>
+          <MutedText>
+            {activity.assigned_to_name}
+            {activity.department_name ? ` · ${activity.department_name}` : ""}
+          </MutedText>
         </div>
-        <time dateTime={activity.occurred_at}>{activityTimestamp(activity.occurred_at)}</time>
+        <span className={pending ? styles.pending : styles.completed}>
+          {pending ? "Pendiente" : "Completada"}
+        </span>
       </header>
-      {saved ? <p role="status">Corrección guardada.</p> : null}
-      {editing && activity.can_edit ? <ActivityForm clientId={clientId} departments={[]} activity={activity} onDone={(changed) => { setEditing(false); setSaved(!!changed); }} /> : (
+
+      {editing ? (
+        <ActivityForm clientId={clientId} options={options} activity={activity}
+          onDone={(changed) => {
+            setEditing(false);
+            if (changed) setMessage("Cambios guardados.");
+          }} />
+      ) : (
         <>
           <p className={styles.content}>{activity.description}</p>
-          {activity.next_action ? <div className={styles.nextAction}><strong>Próxima acción</strong><p className={styles.content}>{activity.next_action}</p></div> : null}
+          <div className={styles.dates}>
+            <MutedText>Programada: {activityDate(activity.scheduled_for)}</MutedText>
+            {activity.completed_at ? (
+              <MutedText>Completada: {activityTimestamp(activity.completed_at)}</MutedText>
+            ) : null}
+            {activity.schedule_id ? <span className={styles.recurring}>Recurrente</span> : null}
+          </div>
+          {activity.next_action ? (
+            <div className={styles.nextAction}>
+              <strong>Próxima acción</strong>
+              <p className={styles.content}>{activity.next_action}</p>
+            </div>
+          ) : null}
           <footer className={styles.footer}>
-            <MutedText>Registrada: {activityTimestamp(activity.created_at)}{activity.updated_at !== activity.created_at ? ` · Corregida: ${activityTimestamp(activity.updated_at)}` : ""}</MutedText>
-            {activity.can_edit ? <Button type="button" variant="quiet" onClick={() => { setSaved(false); setEditing(true); }}>Corregir actividad</Button> : null}
+            <MutedText>
+              Registrada: {activityTimestamp(activity.created_at)}
+              {activity.updated_at !== activity.created_at
+                ? ` · Actualizada: ${activityTimestamp(activity.updated_at)}` : ""}
+            </MutedText>
+            <div className={styles.actions}>
+              {confirming === "COMPLETE" ? (
+                <>
+                  <span>¿Marcar como completada?</span>
+                  <Button type="button" disabled={busy} onClick={() => void complete()}>Confirmar</Button>
+                  <Button type="button" variant="quiet" disabled={busy}
+                    onClick={() => setConfirming(null)}>Cancelar</Button>
+                </>
+              ) : confirming === "DELETE" ? (
+                <>
+                  <span>¿Qué quieres eliminar?</span>
+                  <Button type="button" variant="danger" disabled={busy}
+                    onClick={() => void remove("THIS")}>Solo esta</Button>
+                  {activity.schedule_id ? (
+                    <Button type="button" variant="danger" disabled={busy}
+                      onClick={() => void remove("THIS_AND_FOLLOWING")}>
+                      Esta y las siguientes
+                    </Button>
+                  ) : null}
+                  <Button type="button" variant="quiet" disabled={busy}
+                    onClick={() => setConfirming(null)}>Cancelar</Button>
+                </>
+              ) : (
+                <>
+                  {pending && activity.can_edit ? (
+                    <Button type="button" disabled={busy}
+                      onClick={() => { setMessage(""); setConfirming("COMPLETE"); }}>
+                      Completar
+                    </Button>
+                  ) : null}
+                  {activity.can_edit ? (
+                    <Button type="button" variant="quiet" disabled={busy}
+                      onClick={() => { setMessage(""); setEditing(true); }}>Editar</Button>
+                  ) : null}
+                  {activity.can_delete ? (
+                    <Button type="button" variant="danger" disabled={busy}
+                      onClick={() => { setMessage(""); setConfirming("DELETE"); }}>Eliminar</Button>
+                  ) : null}
+                </>
+              )}
+            </div>
           </footer>
         </>
       )}
+      {error ? <FormError>{error}</FormError> : null}
+      {message ? <p role="status">{message}</p> : null}
     </article>
   );
 }

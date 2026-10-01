@@ -1,21 +1,25 @@
-from typing import Any, Literal
+from datetime import UTC, date, datetime, time, timedelta
+from typing import Any
 from uuid import UUID
 
-from sqlalchemy import DateTime, Select, cast, func, literal, null, select, union_all
+from sqlalchemy import Select, func, null, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
 
 from app.models import (
     Activity,
+    ActivityType,
     Client,
     Department,
     DepartmentMember,
     OrganizationMode,
-    Task,
     User,
     UserRole,
     UserStatus,
 )
-from app.policies.authorization import AuthorizationContext
+from app.models.activity import ActivityStatus
+from app.policies.activities import can_correct_activity
+from app.policies.authorization import AuthorizationContext, can_manage_task
 from app.schemas.insights import (
     DashboardMetrics,
     DashboardResponse,
@@ -24,63 +28,83 @@ from app.schemas.insights import (
     HistoryPage,
 )
 from app.services.clients import get_client
-from app.services.scopes import visible_activities, visible_clients, visible_tasks
+from app.services.recurrence import materialize_schedules
+from app.services.scopes import visible_activities, visible_clients
 
 
 def _activity_rows(context: AuthorizationContext) -> Select[Any]:
+    assignee = aliased(User)
     return (
         visible_activities(context)
-        .with_only_columns(
-            Activity.id.label("id"),
-            literal("ACTIVITY").label("kind"),
-            Activity.client_id.label("client_id"),
+        .add_columns(
             Client.name.label("client_name"),
-            Activity.department_id.label("department_id"),
             Department.name.label("department_name"),
-            Activity.user_id.label("person_id"),
-            User.full_name.label("person_name"),
-            Activity.type.label("type"),
-            Activity.type.label("title"),
-            Activity.description.label("description"),
-            Activity.next_action.label("next_action"),
-            Activity.occurred_at.label("occurred_at"),
-            cast(null(), DateTime(timezone=True)).label("due_at"),
+            assignee.full_name.label("person_name"),
+            ActivityType.name.label("activity_type_name"),
         )
         .join(Client, Client.id == Activity.client_id)
-        .join(User, User.id == Activity.user_id)
+        .join(assignee, assignee.id == Activity.assigned_to_user_id)
         .outerjoin(Department, Department.id == Activity.department_id)
+        .join(ActivityType, ActivityType.id == Activity.activity_type_id)
     )
 
 
-def _task_rows(context: AuthorizationContext) -> Select[Any]:
-    return (
-        visible_tasks(context)
-        .with_only_columns(
-            Task.id.label("id"),
-            literal("TASK").label("kind"),
-            Task.client_id.label("client_id"),
-            Client.name.label("client_name"),
-            Task.department_id.label("department_id"),
-            Department.name.label("department_name"),
-            Task.assigned_to_user_id.label("person_id"),
-            User.full_name.label("person_name"),
-            Task.status.label("type"),
-            Task.title.label("title"),
-            Task.description.label("description"),
-            cast(null(), Activity.next_action.type).label("next_action"),
-            func.coalesce(Task.completed_at, Task.created_at).label("occurred_at"),
-            Task.due_at.label("due_at"),
+def _entry(
+    authorization: AuthorizationContext,
+    row: Any,
+) -> HistoryEntry:
+    activity: Activity = row[0]
+    pending = activity.status == ActivityStatus.PENDING.value
+    can_edit = (
+        can_manage_task(
+            authorization,
+            organization_id=activity.organization_id,
+            department_id=activity.department_id,
+            is_assigned_to_actor=activity.assigned_to_user_id == authorization.user_id,
+            is_client_assigned=True,
         )
-        .join(Client, Client.id == Task.client_id)
-        .join(User, User.id == Task.assigned_to_user_id)
-        .outerjoin(Department, Department.id == Task.department_id)
+        if pending
+        else can_correct_activity(
+            authorization,
+            organization_id=activity.organization_id,
+            department_id=activity.department_id,
+            author_id=activity.user_id,
+            created_at=activity.created_at,
+            now=datetime.now(UTC),
+            is_client_assigned=True,
+        )
+    )
+    return HistoryEntry(
+        id=activity.id,
+        client_id=activity.client_id,
+        client_name=row.client_name,
+        department_id=activity.department_id,
+        department_name=row.department_name,
+        person_id=activity.assigned_to_user_id,
+        person_name=row.person_name,
+        activity_type_id=activity.activity_type_id,
+        activity_type_name=row.activity_type_name,
+        title=activity.title,
+        description=activity.description,
+        next_action=activity.next_action,
+        scheduled_for=activity.scheduled_for,
+        status=ActivityStatus(activity.status),
+        occurred_at=activity.occurred_at,
+        created_at=activity.created_at,
+        updated_at=activity.updated_at,
+        completed_at=activity.completed_at,
+        schedule_id=activity.schedule_id,
+        can_edit=can_edit,
+        can_delete=pending and can_edit,
     )
 
 
-async def _entries(session: AsyncSession, statement: Select[Any]) -> list[HistoryEntry]:
-    return [
-        HistoryEntry.model_validate(row) for row in (await session.execute(statement)).mappings()
-    ]
+async def _entries(
+    session: AsyncSession,
+    statement: Select[Any],
+    authorization: AuthorizationContext,
+) -> list[HistoryEntry]:
+    return [_entry(authorization, row) for row in (await session.execute(statement)).all()]
 
 
 async def client_history(
@@ -88,32 +112,35 @@ async def client_history(
     *,
     authorization: AuthorizationContext,
     client_id: UUID,
-    kind: Literal["ACTIVITY", "TASK"] | None = None,
+    activity_status: ActivityStatus | None = None,
+    activity_type_id: UUID | None = None,
+    scheduled: bool | None = None,
     offset: int = 0,
     limit: int = 20,
 ) -> HistoryPage:
     await get_client(session, authorization=authorization, client_id=client_id)
-    activities = _activity_rows(authorization).where(Activity.client_id == client_id)
-    tasks = _task_rows(authorization).where(Task.client_id == client_id)
-    combined = (
-        activities
-        if kind == "ACTIVITY"
-        else tasks
-        if kind == "TASK"
-        else union_all(activities, tasks)
-    ).subquery()
-    entries = await _entries(
+    await materialize_schedules(
+        session, organization_id=authorization.organization_id, client_id=client_id
+    )
+    statement = _activity_rows(authorization).where(Activity.client_id == client_id)
+    if activity_status is not None:
+        statement = statement.where(Activity.status == activity_status.value)
+    if activity_type_id is not None:
+        statement = statement.where(Activity.activity_type_id == activity_type_id)
+    if scheduled is True:
+        statement = statement.where(Activity.scheduled_for > date.today())
+    elif scheduled is False:
+        statement = statement.where(Activity.scheduled_for <= date.today())
+    rows = await _entries(
         session,
-        select(combined)
-        .order_by(
-            combined.c.occurred_at.desc(),
-            combined.c.kind.asc(),
-            combined.c.id.desc(),
+        statement.order_by(
+            Activity.scheduled_for.desc(), Activity.created_at.desc(), Activity.id.desc()
         )
         .offset(offset)
         .limit(limit + 1),
+        authorization,
     )
-    return HistoryPage(items=entries[:limit], has_more=len(entries) > limit)
+    return HistoryPage(items=rows[:limit], has_more=len(rows) > limit)
 
 
 def _count(statement: Select[Any]) -> Any:
@@ -123,8 +150,8 @@ def _count(statement: Select[Any]) -> Any:
 async def dashboard(
     session: AsyncSession, *, authorization: AuthorizationContext
 ) -> DashboardResponse:
+    await materialize_schedules(session, organization_id=authorization.organization_id)
     activity_scope = visible_activities(authorization)
-    task_scope = visible_tasks(authorization)
     department_scope = select(Department).where(
         Department.organization_id == authorization.organization_id
     )
@@ -135,6 +162,17 @@ async def dashboard(
         authorization.organization_mode is OrganizationMode.BUSINESS
         and authorization.role != UserRole.EMPLOYEE
     )
+    today_start = datetime.combine(datetime.now(UTC).date(), time.min, tzinfo=UTC)
+    tomorrow_start = today_start + timedelta(days=1)
+    today_condition = or_(
+        Activity.scheduled_for == date.today(),
+        (
+            (Activity.completed_at >= today_start)
+            & (Activity.completed_at < tomorrow_start)
+        ),
+    )
+    today_scope = activity_scope.where(today_condition)
+    today_rows = today_scope.subquery()
     if not authorization.is_owner:
         department_scope = department_scope.where(Department.id.in_(authorization.department_ids))
         user_scope = user_scope.where(
@@ -152,9 +190,27 @@ async def dashboard(
             await session.execute(
                 select(
                     _count(visible_clients(authorization)).label("clients"),
-                    _count(task_scope.where(Task.status == "PENDING")).label("pending_tasks"),
-                    _count(task_scope.where(Task.status == "COMPLETED")).label("completed_tasks"),
+                    _count(activity_scope.where(Activity.status == "PENDING")).label(
+                        "pending_tasks"
+                    ),
+                    _count(
+                        activity_scope.where(
+                            Activity.status == ActivityStatus.COMPLETED.value,
+                            Activity.completed_at >= today_start,
+                            Activity.completed_at < tomorrow_start,
+                        )
+                    ).label("completed_tasks"),
                     _count(activity_scope).label("activities"),
+                    select(func.count(func.distinct(today_rows.c.client_id)))
+                    .scalar_subquery()
+                    .label("today_clients"),
+                    _count(today_scope).label("today_activities"),
+                    _count(
+                        activity_scope.where(
+                            Activity.status == ActivityStatus.PENDING.value,
+                            Activity.scheduled_for == date.today(),
+                        )
+                    ).label("today_pending_tasks"),
                     (_count(user_scope) if management else null()).label("active_users"),
                     (_count(department_scope) if management else null()).label("departments"),
                 )
@@ -163,28 +219,28 @@ async def dashboard(
         .mappings()
         .one()
     )
-    departments = []
+    departments: list[DepartmentOverview] = []
     if management:
-        act = activity_scope.subquery()
-        work = task_scope.where(Task.status == "PENDING").subquery()
-        act_counts = (
-            select(act.c.department_id, func.count().label("count"))
-            .group_by(act.c.department_id)
+        all_work = today_scope.subquery()
+        pending_scope = activity_scope.where(
+            Activity.status == ActivityStatus.PENDING.value,
+            Activity.scheduled_for == date.today(),
+        ).subquery()
+        activity_counts = (
+            select(all_work.c.department_id, func.count().label("count"))
+            .group_by(all_work.c.department_id)
             .subquery()
         )
-        work_counts = (
-            select(work.c.department_id, func.count().label("count"))
-            .group_by(work.c.department_id)
+        pending_counts = (
+            select(pending_scope.c.department_id, func.count().label("count"))
+            .group_by(pending_scope.c.department_id)
             .subquery()
         )
         employee_counts = (
             select(
                 DepartmentMember.department_id, func.count(func.distinct(User.id)).label("count")
             )
-            .join(
-                User,
-                User.id == DepartmentMember.user_id,
-            )
+            .join(User, User.id == DepartmentMember.user_id)
             .where(
                 User.organization_id == authorization.organization_id,
                 DepartmentMember.organization_id == authorization.organization_id,
@@ -200,12 +256,12 @@ async def dashboard(
                     Department.id,
                     Department.name,
                     func.coalesce(employee_counts.c.count, 0).label("active_employees"),
-                    func.coalesce(act_counts.c.count, 0).label("activities"),
-                    func.coalesce(work_counts.c.count, 0).label("pending_tasks"),
+                    func.coalesce(activity_counts.c.count, 0).label("activities"),
+                    func.coalesce(pending_counts.c.count, 0).label("pending_tasks"),
                 )
                 .outerjoin(employee_counts, employee_counts.c.department_id == Department.id)
-                .outerjoin(act_counts, act_counts.c.department_id == Department.id)
-                .outerjoin(work_counts, work_counts.c.department_id == Department.id)
+                .outerjoin(activity_counts, activity_counts.c.department_id == Department.id)
+                .outerjoin(pending_counts, pending_counts.c.department_id == Department.id)
                 .order_by(Department.name, Department.id)
             )
         ).mappings()
@@ -213,23 +269,31 @@ async def dashboard(
     recent = await _entries(
         session,
         _activity_rows(authorization)
-        .order_by(Activity.occurred_at.desc(), Activity.id.desc())
+        .where(Activity.status == ActivityStatus.COMPLETED.value)
+        .order_by(Activity.completed_at.desc(), Activity.id.desc())
         .limit(5),
+        authorization,
     )
-    pending = await _entries(
+    pending_entries = await _entries(
         session,
-        _task_rows(authorization)
-        .where(Task.status == "PENDING")
-        .order_by(
-            Task.due_at.asc().nulls_last(),
-            Task.created_at.desc(),
-            Task.id.desc(),
-        )
+        _activity_rows(authorization)
+        .where(Activity.status == ActivityStatus.PENDING.value)
+        .order_by(Activity.scheduled_for.asc(), Activity.created_at.desc(), Activity.id.desc())
         .limit(5),
+        authorization,
+    )
+    today_entries = await _entries(
+        session,
+        _activity_rows(authorization)
+        .where(today_condition)
+        .order_by(Activity.scheduled_for.asc(), Activity.created_at.desc(), Activity.id.desc())
+        .limit(8),
+        authorization,
     )
     return DashboardResponse(
         metrics=DashboardMetrics.model_validate(counters),
         departments=departments,
+        today_activities=today_entries,
         recent_activities=recent,
-        pending_tasks=pending,
+        pending_tasks=pending_entries,
     )

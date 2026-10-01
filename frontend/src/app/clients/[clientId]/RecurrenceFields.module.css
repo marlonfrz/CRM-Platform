@@ -1,0 +1,29 @@
+.group {
+  display: grid;
+  gap: 1rem;
+  margin: 0;
+  padding: 1.1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-muted);
+}
+.group legend, .label { font-weight: 750; }
+.interval { display: grid; grid-template-columns: minmax(8rem, .65fr) 1fr; gap: 1rem; }
+.weekdays { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .65rem; }
+.day input { position: absolute; opacity: 0; pointer-events: none; }
+.day span {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 50%;
+  background: var(--color-surface);
+  cursor: pointer;
+}
+.day input:checked + span { border-color: var(--color-primary); background: var(--color-primary-soft); color: var(--color-primary-dark); }
+.day input:focus-visible + span { outline: 3px solid var(--color-focus-ring); outline-offset: 2px; }
+.monthly { display: grid; gap: 1rem; }
+.ends { display: flex; flex-wrap: wrap; align-items: center; gap: .9rem; }
+.ends input[type="date"] { min-height: 2.8rem; padding: .55rem .75rem; border: 1px solid var(--color-border); border-radius: var(--radius-control); }
+@media (max-width: 680px) { .interval { grid-template-columns: 1fr; } }

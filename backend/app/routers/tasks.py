@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import Principal, get_authorization_context, require_csrf
 from app.db.dependencies import get_db_session
-from app.models.task import TaskStatus
+from app.models.activity import ActivityStatus
 from app.policies.authorization import AuthorizationContext
 from app.schemas.tasks import TaskPage, TaskRequest, TaskUpdate
 from app.services.exceptions import DomainError
@@ -26,7 +26,7 @@ Limit = Annotated[int, Query(ge=1, le=100)]
 async def get_my_tasks(
     authorization: Authorization,
     session: Database,
-    status: TaskStatus | None = None,
+    status: ActivityStatus | None = None,
     offset: Offset = 0,
     limit: Limit = 20,
 ) -> TaskPage:
@@ -40,7 +40,7 @@ async def get_client_tasks(
     client_id: UUID,
     authorization: Authorization,
     session: Database,
-    status: TaskStatus | None = None,
+    status: ActivityStatus | None = None,
     offset: Offset = 0,
     limit: Limit = 20,
 ) -> TaskPage:

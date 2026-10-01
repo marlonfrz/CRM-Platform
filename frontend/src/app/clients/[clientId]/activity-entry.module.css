@@ -1,13 +1,20 @@
-.entry { padding: 1.5rem; border: 1px solid var(--color-border); border-radius: var(--radius-control); min-width: 0; }
-.header { display: flex; justify-content: space-between; align-items: start; gap: 1rem; margin-bottom: 1.25rem; }
-.header h3 { margin: 0 0 .4rem; font-size: 1.1rem; }
+.entry { padding: 1.15rem; border: 1px solid var(--color-border); border-radius: var(--radius-control); min-width: 0; background: var(--color-surface); }
+.header { display: flex; justify-content: space-between; align-items: start; gap: 1rem; margin-bottom: 1rem; }
+.header h3 { margin: .25rem 0 .35rem; font-size: 1.08rem; }
 .header p { margin: 0; }
-.header time { color: var(--color-muted); font-size: .85rem; }
-.content { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.65; margin: 0; }
-.nextAction { margin-top: 1.25rem; padding: 1rem; background: var(--color-background, #f4f6fa); border-radius: var(--radius-control); }
-.nextAction strong { display: block; margin-bottom: .5rem; font-size: .85rem; }
-.footer { margin-top: 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
-.footer p { font-size: .8rem; margin: 0; }
+.type { color: var(--color-primary); font-size: .75rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.pending, .completed, .recurring { border-radius: 999px; padding: .3rem .65rem; font-size: .75rem; font-weight: 750; white-space: nowrap; }
+.pending { color: var(--color-warning-text); background: var(--color-warning-soft); }
+.completed { color: var(--color-success-text); background: var(--color-success-soft); }
+.recurring { color: var(--color-primary-dark); background: var(--color-primary-soft); }
+.content { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.55; margin: 0; }
+.dates { display: flex; flex-wrap: wrap; align-items: center; gap: .65rem; margin-top: .9rem; }
+.dates p { margin: 0; }
+.nextAction { margin-top: 1rem; padding: .9rem; background: var(--color-surface-muted); border-radius: var(--radius-control); }
+.nextAction strong { display: block; margin-bottom: .4rem; font-size: .82rem; }
+.footer { margin-top: 1.15rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.footer p { font-size: .78rem; margin: 0; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: .55rem; }
 @media (max-width: 680px) {
   .entry { padding: 1rem; }
   .header, .footer { flex-direction: column; align-items: stretch; }

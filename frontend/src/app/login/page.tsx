@@ -8,6 +8,7 @@ import { LoginForm } from "./login-form";
 import styles from "./page.module.css";
 
 export default async function LoginPage() {
+  if (process.env.DEMO_MODE === "true") redirect("/dashboard");
   if (!(await isInstallationInitialized())) redirect("/setup");
   return (
     <main className={styles.shell}>

@@ -1,10 +1,10 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Annotated
 from uuid import UUID
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, StringConstraints
 
-from app.models.task import TaskStatus
+from app.models.activity import ActivityStatus
 
 TaskTitle = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
 TaskDescription = Annotated[str, StringConstraints(strip_whitespace=True, max_length=5000)]
@@ -50,8 +50,8 @@ class TaskResponse(BaseModel):
     department_name: str | None
     title: str
     description: str | None
-    due_at: datetime | None
-    status: TaskStatus
+    due_at: date | None
+    status: ActivityStatus
     completed_at: datetime | None
     created_at: datetime
     updated_at: datetime

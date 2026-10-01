@@ -22,6 +22,7 @@ from app.models import (
     UserRole,
     UserStatus,
 )
+from app.models.activity_type import activity_type_identifier
 from app.policies.activities import can_correct_activity
 from app.policies.authorization import AuthorizationContext
 from app.services import activities
@@ -81,7 +82,7 @@ async def test_automatic_department_author_filters_and_correction(
     assert item["department_id"] == str(team.department.id)
     assert (
         await api_client.delete(f"{path(team)}/{identifier}", headers=headers)
-    ).status_code == 405
+    ).status_code == 403
     events = list(
         await db_session.scalars(select(AuditLog).where(AuditLog.entity_type == "ACTIVITY"))
     )
@@ -94,6 +95,36 @@ async def test_automatic_department_author_filters_and_correction(
         "Called the client" not in str(e.event_data) and "Corrected" not in str(e.event_data)
         for e in events
     )
+
+
+async def test_same_activity_endpoint_creates_pending_work(
+    team: Team,
+    api_client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    headers = await login(api_client, team.users["admin"])
+    response = await api_client.post(
+        path(team),
+        headers=headers,
+        json=body(
+            status="PENDING",
+            title="Prepare proposal",
+            occurred_at=None,
+            due_at="2026-10-01T10:00:00Z",
+            assigned_to_user_id=str(team.users["admin"].id),
+        ),
+    )
+    assert response.status_code == 201
+    activity = await db_session.get(Activity, response.json()["id"])
+    assert activity is not None
+    assert activity.status == "PENDING"
+    assert activity.title == "Prepare proposal"
+    assert activity.occurred_at is None and activity.completed_at is None
+    assert [item["id"] for item in (await api_client.get(path(team))).json()["items"]] == [
+        str(activity.id)
+    ]
+    tasks = (await api_client.get(f"/api/v1/clients/{team.client.id}/tasks")).json()
+    assert [item["id"] for item in tasks["items"]] == [str(activity.id)]
 
 
 async def test_multiple_departments_require_choice_and_scope_is_applied_in_sql(
@@ -218,10 +249,14 @@ async def test_old_record_cannot_be_corrected_even_by_owner(
         organization_id=team.client.organization_id,
         client_id=team.client.id,
         user_id=team.users["owner"].id,
+        assigned_to_user_id=team.users["owner"].id,
         department_id=team.department.id,
-        type="NOTE",
+        activity_type_id=activity_type_identifier(team.client.organization_id, "nota"),
         description="Historical",
+        scheduled_for=datetime.now(UTC).date(),
+        status="COMPLETED",
         occurred_at=datetime.now(UTC),
+        completed_at=datetime.now(UTC),
         created_at=datetime.now(UTC) - timedelta(days=2),
     )
     db_session.add(activity)
@@ -346,10 +381,14 @@ async def test_database_prevents_cross_organization_activity_links(
         organization_id=team.client.organization_id,
         client_id=team.client.id,
         user_id=team.users["owner"].id,
+        assigned_to_user_id=team.users["owner"].id,
         department_id=team.department.id,
-        type="NOTE",
+        activity_type_id=activity_type_identifier(team.client.organization_id, "nota"),
         description="Test",
+        scheduled_for=datetime.now(UTC).date(),
+        status="COMPLETED",
         occurred_at=datetime.now(UTC),
+        completed_at=datetime.now(UTC),
     )
     values[field] = {"client_id": client.id, "user_id": user.id, "department_id": dep.id}[field]
     with pytest.raises(IntegrityError):

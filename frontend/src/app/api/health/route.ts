@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  if (process.env.DEMO_MODE === "true") return NextResponse.json({ status: "ok" });
   const backendUrl = process.env.BACKEND_INTERNAL_URL ?? "http://localhost:8000";
 
   try {

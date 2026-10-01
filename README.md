@@ -64,3 +64,26 @@ crm-bootstrap --mode BUSINESS --organization-name "Example Company" --owner-name
 ```
 
 Use `INDIVIDUAL` instead of `BUSINESS` for a single-person installation. The command prompts for the password without echoing it. User invitations created in the Docker development environment are available in Mailpit.
+
+## Optional AI summaries
+
+Owners and department admins can access `/summaries`, or open a client summary from its detail page. AI is disabled by default; the CRM works without it. The owner can configure Ollama, OpenAI, Anthropic Claude or Google Gemini from `IA > Opciones`; external tokens are encrypted per organization and never returned by the API. Production must set a stable `AI_CREDENTIALS_ENCRYPTION_KEY`.
+
+For local tests, start the optional private Ollama service and download the recommended model:
+
+```bash
+docker compose --profile ai up -d ollama
+docker compose --profile ai exec ollama ollama pull llama3.2:1b
+```
+
+See [AI_SUMMARIES.md](docs/AI_SUMMARIES.md) for privacy, limits, model choices, demo data and acceptance checks.
+
+## Portfolio demo
+
+The `demo` branch runs the same Next.js CRM screens and routes with synthetic, session-scoped data. It starts without the API, PostgreSQL or an AI provider. See [demo/README.md](demo/README.md) for local and Docker instructions. Demo edits are temporary and reset when the server restarts.
+
+## Production preparation
+
+Production uses versioned frontend and backend images, `compose.production.yaml` and Caddy as the only public entry point. It is intentionally separate from the local development stack. See [PRODUCTION.md](docs/PRODUCTION.md) for installation, migrations, HTTPS, backups, restore checks, updates and rollback.
+
+Customer-specific functionality does not use permanent branches or custom images. See [FEATURE_VARIANTS.md](docs/FEATURE_VARIANTS.md) for the shared-release and optional-capability policy.

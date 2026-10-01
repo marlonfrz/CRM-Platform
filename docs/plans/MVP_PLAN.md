@@ -284,11 +284,11 @@ Estado: implementada el 07/09/2026. Incluye migración, API, tareas en ficha, «
 
 Migración aplicada y verificada en Docker. Comprobación en navegador con admin de pruebas: acceso a «Mis tareas», apertura del formulario en ficha, responsables disponibles, campos opcionales y maquetación en viewport estrecho. Se canceló el formulario sin guardar datos y se cerró la sesión. Los flujos de escritura y demás roles están cubiertos por las pruebas automatizadas, no por un recorrido visual completo.
 
-Objetivo: representar trabajo pendiente sin mezclarlo con actividad histórica.
+Objetivo: representar trabajo pendiente como parte del ciclo de vida de una actividad.
 
 Tareas:
 
-- crear `Task`;
+- ampliar `Activity` con estado, responsable y fecha límite opcional;
 - crear, listar, actualizar y completar;
 - vistas `Mis tareas` y tareas del cliente;
 - validar responsable y acceso al cliente;
@@ -297,7 +297,7 @@ Tareas:
 
 Criterios de aceptación:
 
-- las tareas no se almacenan como actividades;
+- las tareas se almacenan como actividades pendientes, sin tabla duplicada;
 - un responsable solo puede asignarse si tiene acceso válido al cliente;
 - employees gestionan sus tareas según la matriz;
 - no se añaden prioridad, recurrencia ni estados configurables.
@@ -312,7 +312,16 @@ Comprobación funcional:
 5. Completar con confirmación y comprobar la fecha de finalización, ausencia de edición posterior y un único evento de auditoría ante repetición.
 6. Retirar la asignación o membresía de un empleado y comprobar que pierde acceso sin destruir la tarea; el owner/admin de su departamento puede reasignarla para recuperar el trabajo.
 
-No incluye prioridades, recurrencia, recordatorios, calendario, reapertura, borrado ni conversión automática de actividades en tareas. La fase 10 no se inicia con esta entrega.
+No incluye prioridades, recurrencia, recordatorios, calendario, reapertura ni borrado. El 14/09/2026 se eliminó la duplicación de modelos: la migración mueve las tareas existentes a `activities`, conserva las rutas compatibles y la ficha pasa a usar un solo formulario.
+
+Ampliación funcional del 16/09/2026: este límite queda reemplazado por la decisión posterior del
+producto de incorporar recurrencia y borrado de pendientes. Se elimina por completo el modelo
+`Task`, se normalizan los tipos de actividad configurables por departamento y se adopta
+`scheduled_for` como fecha de trabajo obligatoria. La ficha usa pestañas «Hoy», «Programadas» e
+«Historial», una sola lista agrupada por fecha y bloques incrementales de 20 elementos. Conserva
+`/tasks` únicamente como adaptador compatible. Las series materializan la
+ocurrencia actual y la siguiente de forma idempotente; owner/admin gestionan pendientes de su alcance
+y employee solo las propias. No se introduce un rol adicional.
 
 ### Fase 10 — Historial del cliente y dashboards mínimos
 
@@ -341,7 +350,7 @@ Criterios de aceptación:
 Comprobación funcional:
 
 1. Abrir Inicio como owner, admin y empleado y contrastar las métricas con los listados permitidos. El admin ve el catálogo global de clientes, no actividad o tareas de otros departamentos.
-2. Abrir la ficha de un cliente y consultar «Historial del cliente»: combinar actividades y tareas, filtrar cada tipo y navegar páginas sin perder los filtros de las otras secciones.
+2. Abrir la ficha de un cliente y consultar «Seguimiento del cliente»: filtrar actividades pendientes, completadas al registrarlas o completadas posteriormente, y navegar páginas sin perder el filtro activo. Crear ambos estados desde el mismo formulario y gestionarlos sobre el modelo unificado.
 3. Comprobar que cada actividad identifica autor y fecha; cada tarea identifica responsable, estado actual y fecha de finalización o creación. No se presentan versiones históricas ni se afirma quién completó una tarea a partir de su responsable.
 4. Retirar una asignación o membresía y verificar que los nuevos accesos ya no incluyen registros fuera de alcance, tampoco en los contadores.
 5. En modo individual, comprobar Inicio e historial sin departamentos, equipos ni asignaciones.
@@ -377,6 +386,10 @@ Criterios de aceptación:
 
 ### Fase 12 — Resúmenes de IA
 
+Estado: implementación técnica en `develop`, desactivada por defecto. Incluye consultas autorizadas, agrupación departamental, modo individual, interfaz, adaptadores opcionales Ollama/OpenAI/Anthropic/Gemini, validación, auditoría y conservación del último resumen por alcance. Ver [AI_SUMMARIES.md](../AI_SUMMARIES.md) para configuración y límites. Pendiente cerrar la evaluación comparativa y decidir proveedor, privacidad y presupuesto con el propietario.
+
+Verificación: 182 pruebas backend y 57 frontend superadas, lint y tipos correctos, build de Next.js correcto. Backend y frontend reconstruidos en Docker y saludables; `alembic check` sin cambios de esquema. Vista de admin comprobada en navegador con la IA desactivada y sesión cerrada al terminar, sin modificar datos de negocio. Owner, modo individual y resultados están cubiertos por pruebas automatizadas, no por un recorrido visual completo con modelos reales. La suite backend se ejecutó con `-p no:cacheprovider` por permisos incompatibles en la caché local de pytest; no se cambiaron sus permisos.
+
 Objetivo: aportar resúmenes útiles sin delegar permisos ni estructura al LLM.
 
 Condición de entrada: permisos, historial y auditoría están completos y probados.
@@ -406,6 +419,8 @@ Criterios de aceptación:
 - no se incorpora una cola hasta demostrar su necesidad.
 
 ### Fase 13 — Endurecimiento y entrega de una instalación
+
+Estado: preparación local iniciada el 23/09/2026. Existen imágenes de producción sin usuario root, Compose independiente, Caddy, redes privadas, migración previa al arranque, SMTP de producción, sesión deslizante renovada desde el navegador, scripts de backup/comprobación de restauración y smoke test, y documentación de instalación/actualización. Sigue pendiente construir y publicar una release en un registry, desplegar el VPS piloto, demostrar allí la restauración, elegir la barrera MFA/SSO y completar la revisión final de seguridad. Ver [PRODUCTION.md](../PRODUCTION.md) y [FEATURE_VARIANTS.md](../FEATURE_VARIANTS.md).
 
 Objetivo: desplegar de forma repetible una primera instalación independiente.
 
@@ -494,10 +509,10 @@ Clientes
    ↓
 Asignaciones
    ↓
-Actividades ──→ Historial y dashboards
-   ↓                    ↓
-Tareas ────────────────┘
-                        ↓
+Actividades pendientes/completadas
+              ↓
+      Historial y dashboards
+              ↓
                   Auditoría cerrada
                         ↓
                        IA
@@ -520,10 +535,10 @@ La auditoría comienza en autenticación y acompaña cada fase; su fase propia r
 - pipelines;
 - facturación y presupuestos;
 - proyectos, calendario, email y documentos;
-- automatizaciones;
+- automatizaciones distintas de la recurrencia de actividades;
 - integraciones externas;
 - dashboards configurables;
-- tipos y estados completamente configurables;
+- estados configurables; los tipos de actividad sí son ampliables por departamento;
 - IA avanzada distinta de los resúmenes definidos.
 
 Aplazar significa no diseñar tablas o abstracciones especulativas para estas funciones. Se conservarán límites modulares y migraciones limpias para poder añadirlas cuando exista una necesidad real.

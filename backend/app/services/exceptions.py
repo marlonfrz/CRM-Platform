@@ -32,3 +32,7 @@ class AuthorizationDeniedError(DomainError):
 
 class ResourceConflictError(DomainError):
     pass
+
+
+class InvalidAIConfigurationError(DomainError):
+    pass

@@ -42,7 +42,9 @@ export function ClientCreateForm() {
   }
 
   return (
-    <Card className={styles.card}>
+    <details className={styles.disclosure}>
+      <summary>Nuevo cliente</summary>
+      <Card className={styles.card}>
       <div className={styles.heading}>
         <h2>Nuevo cliente</h2>
         <p>Crea la ficha general. Después podrás añadir sus personas de contacto.</p>
@@ -58,6 +60,7 @@ export function ClientCreateForm() {
           </Button>
         </div>
       </form>
-    </Card>
+      </Card>
+    </details>
   );
 }

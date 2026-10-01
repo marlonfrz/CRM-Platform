@@ -13,8 +13,7 @@ El MVP incluye:
 - roles y autorización por alcance;
 - clientes globales dentro de la organización y sus personas de contacto;
 - asignación de clientes a usuarios;
-- actividades asociadas a usuario y departamento;
-- tareas;
+- actividades asociadas a usuario y departamento, pendientes o completadas;
 - historial del cliente;
 - auditoría básica;
 - resúmenes de IA posteriores al núcleo funcional.
@@ -38,8 +37,8 @@ Quedan fuera del MVP las funcionalidades enumeradas expresamente en `CRM_CONTEXT
 - Una actividad pertenece al cliente, al autor y al departamento desde el que se realizó.
 - El departamento de la actividad lo determina el backend.
 - En modo individual, una actividad no necesita departamento porque no existe contexto departamental.
-- Actividades y tareas son conceptos diferentes.
-- Las tareas pueden quedar abiertas sin fecha límite.
+- Una tarea es una actividad pendiente: ambas comparten entidad, permisos y ciclo de vida.
+- Las actividades pendientes pueden quedar abiertas sin fecha límite.
 - Al desactivar un usuario o cambiar su contraseña se revocan todas sus sesiones.
 - El backend es la autoridad de permisos.
 - La IA solo recibe datos previamente autorizados y agrupados por el backend.
@@ -189,11 +188,13 @@ Servicios iniciales:
 - backend;
 - PostgreSQL.
 
-No se añaden Redis, RabbitMQ ni Kubernetes. Los resúmenes de IA pueden ejecutarse síncronamente en el primer corte funcional; si las mediciones demuestran esperas o volumen problemáticos, se diseñará procesamiento en segundo plano en una fase posterior.
+No se añaden Redis, RabbitMQ ni Kubernetes. Los resúmenes de IA agrupan todos los departamentos en una sola solicitud compacta y reutilizan durante un periodo corto respuestas idénticas almacenadas en PostgreSQL. El procesamiento en segundo plano requerirá un worker persistente y se mantiene como fase posterior si el proveedor definitivo o el volumen real lo justifican.
 
 La base de datos no publicará puertos en producción. El reverse proxy será el único punto expuesto y terminará HTTPS. Cada instalación tendrá variables, secretos, volúmenes y copias de seguridad propios. Los clientes recibirán artefactos de producción, no el repositorio.
 
-La elección concreta entre Nginx y Traefik queda abierta hasta definir el entorno de despliegue inicial. Nginx es preferible si se busca una configuración estática mínima; Traefik solo se justifica si la automatización de certificados y descubrimiento Docker reduce operación real.
+Para la primera instalación se elige Caddy como reverse proxy por su configuración mínima y renovación automática de certificados. `compose.production.yaml` separa las redes pública, privada y saliente; solo Caddy publica puertos. El procedimiento operativo, backups y restauración se detallan en [PRODUCTION.md](PRODUCTION.md).
+
+Las instalaciones comparten imágenes versionadas. Las diferencias funcionales se modelan como configuración, adaptadores o capacidades por organización, nunca como ramas permanentes por cliente. La política se detalla en [FEATURE_VARIANTS.md](FEATURE_VARIANTS.md).
 
 ### 3.8 Modos individual y empresa
 
@@ -337,13 +338,19 @@ En modo individual no se crean asignaciones: el único owner accede directamente
 - `id`
 - `organization_id`
 - `client_id`
-- `user_id`
+- `user_id` como creador
+- `assigned_to_user_id` como responsable
 - `department_id` opcional exclusivamente en modo individual
-- `type`: `CALL | EMAIL | MEETING | NOTE | INCIDENT | OTHER`
+- `activity_type_id`
+- `schedule_id` opcional
+- `title` opcional
 - `description`
 - `next_action` opcional
-- `occurred_at`
+- `scheduled_for`: fecha de trabajo, obligatoria y con valor inicial de hoy
+- `status`: `PENDING | COMPLETED`
+- `occurred_at` y `completed_at`, nulos mientras está pendiente
 - `created_at`
+- `updated_at`
 
 Restricciones:
 
@@ -352,44 +359,53 @@ Restricciones:
 - en modo empresa el usuario debe ser miembro del departamento registrado y `department_id` es obligatorio;
 - en modo individual `department_id` debe ser nulo y el usuario debe ser el owner de la organización;
 - `department_id` y `user_id` no se aceptan libremente desde un empleado;
-- las actividades se tratan como historial: las correcciones futuras deberán ser auditadas.
+- solo las actividades pendientes se pueden eliminar;
+- una ocurrencia recurrente es única por `schedule_id` y `scheduled_for`.
 
-Se separan `occurred_at` y `created_at` para representar cuándo ocurrió la interacción y cuándo se registró.
+`created_at` es siempre la fecha de auditoría del registro. `scheduled_for` organiza el trabajo por
+fecha. Al completar, `occurred_at` y `completed_at` se fijan de forma atómica. De este modo una
+actividad puede representar tanto una interacción ya realizada como trabajo pendiente sin crear
+una segunda entidad ni usar una fecha ambigua como `due_at`.
 
-Las actividades pueden corregirse durante las primeras 24 horas desde `created_at`, no desde la fecha de la interacción, por su autor, por un admin con alcance sobre el departamento o por el owner. El límite se aplica a los tres roles y exige conservar acceso actual al cliente y a la actividad. No se eliminan físicamente y toda corrección efectiva queda auditada. Autor, cliente y departamento no se pueden modificar; solo tipo, descripción, próxima acción y `occurred_at`. `updated_at` identifica la última corrección.
+Una actividad completada solo puede corregirse durante las primeras 24 horas desde `created_at`;
+una pendiente permanece editable por quien pueda gestionarla. Toda modificación efectiva queda
+auditada. Autor, cliente y departamento no se modifican silenciosamente.
 
-### 4.9 Task
+### 4.9 Ciclo de vida de Activity y compatibilidad de tareas
 
-- `id`
-- `organization_id`
-- `client_id`
-- `assigned_to_user_id`
-- `created_by_user_id`
-- `department_id` opcional exclusivamente en modo individual
-- `title`
-- `description` opcional
-- `due_at` opcional
-- `status`: `PENDING | COMPLETED`
-- `created_at`
-- `updated_at`
-- `completed_at` opcional
+No existe tabla, modelo ni categoría `Task`: una tarea es una actividad pendiente. La tabla
+`activities` es la única fuente de verdad. Las rutas `/tasks` y «Mis tareas» se mantienen como una
+proyección compatible para consumidores antiguos, pero todas sus escrituras delegan al servicio de
+actividades. `due_at`, `category` y el tipo textual antiguo solo existen como compatibilidad de API y
+no como columnas.
 
-No se incluyen prioridad, recurrencia, calendario ni estados configurables porque no están justificados. El usuario asignado debe tener acceso al cliente.
+Los tipos se normalizan en `activity_types`. Se incluyen inicialmente Llamada, Email, Reunión,
+Nota, Incidencia y Otro. Owner y admin pueden añadir tipos; en empresa quedan asociados a un
+departamento y el admin solo puede usar los que pertenecen a su alcance. Esto hace que los filtros
+sean estables aunque distintas personas redacten títulos diferentes. No se añade ningún rol nuevo.
 
-`due_at` es opcional: una tarea puede representar una acción futura todavía sin fecha.
+La recurrencia se almacena en `activity_schedules`, no en cada ocurrencia. Admite intervalos diarios,
+semanales o mensuales, selección de días de la semana, día del mes o enésimo día semanal y una fecha
+de fin opcional. Al crear una serie se materializan la ocurrencia actual y la siguiente. Al consultar
+actividad, historial o dashboard se materializan de forma idempotente las ocurrencias vencidas y se
+mantiene siempre una próxima actividad visible; no hace falta un worker para el despliegue inicial.
+La restricción única de serie y fecha evita duplicados concurrentes.
 
-Decisiones de implementación de la fase 9:
+Decisiones de permisos y presentación:
 
 - Se añade el departamento explícito para cumplir el alcance departamental aprobado también cuando el responsable tiene varias membresías. Derivarlo siempre del responsable haría que una misma tarea apareciera en departamentos ajenos o cambiara de alcance al mover al usuario. El departamento, el cliente y el creador se fijan al crear; solo se puede reasignar a un responsable elegible para ese departamento.
 - El owner empresarial puede crear y gestionar tareas en cualquier departamento de su organización. El admin gestiona sus tareas y las de empleados dentro del departamento de la tarea; no las de otros admins o propietarios. Puede asignar a sí mismo o a empleados activos de ese departamento con acceso al cliente. El empleado crea y gestiona únicamente sus propias tareas, con membresía departamental y asignación al cliente vigentes.
 - En modo individual, creador y responsable son el único owner y el departamento es nulo. La interfaz no solicita departamento ni selección de responsable.
 - Al retirar acceso al cliente o membresía, el empleado pierde acceso a la tarea, pero esta no se borra. Owner y admin autorizado por el departamento pueden recuperar el trabajo reasignándolo a un responsable elegible. La validación de elegibilidad se aplica al crear y al cambiar responsable; editar el texto o completar no reasigna silenciosamente una tarea antigua.
-- Se separa `POST /clients/{client_id}/tasks/{task_id}/complete` de la edición. Completar es idempotente: establece `completed_at` una vez y no duplica la auditoría ante peticiones repetidas. Las tareas completadas quedan en consulta; no hay eliminación ni reapertura en este corte.
+- Completar es idempotente: establece las fechas una vez y no duplica la auditoría ante peticiones repetidas.
+- Owner y admin pueden eliminar pendientes dentro de su alcance; un employee solo las que tiene asignadas. Una ocurrencia puede borrarse sola o junto con las siguientes de su serie. Las completadas no se eliminan.
 - `GET /tasks/mine` devuelve únicamente tareas del usuario actual, incluso si es owner o admin. `GET /clients/{client_id}/tasks` aplica el alcance completo del actor para esa ficha y devuelve los candidatos autorizados para el formulario. La API valida en backend los identificadores elegidos; la lista del navegador no concede permisos.
-- Listados paginados (20 por defecto, máximo 100) con filtro por estado. Primero pendientes, luego completadas; dentro de cada grupo, fecha límite ascendente y sin fecha al final, con desempate estable. Se reutiliza la paginación sencilla por offset de actividades. Los filtros de tareas tienen nombres independientes en la URL de la ficha.
+- La ficha muestra una sola lista con pestañas «Hoy», «Programadas» e «Historial». «Hoy» contiene la fecha actual, «Programadas» pendientes futuras en orden ascendente e «Historial» fechas anteriores en orden descendente.
+- Cada consulta devuelve 20 elementos. «Ver más» solicita el siguiente bloque y lo añade a la lista actual. Los elementos se agrupan visualmente por `scheduled_for` con un separador de fecha.
+- Los listados se filtran por periodo, departamento y `activity_type_id`; el texto libre no se usa como categoría.
 - Claves foráneas compuestas impiden enlaces entre organizaciones. Una restricción exige consistencia entre estado y fecha de finalización. Los departamentos con tareas no pueden eliminarse, aunque no tengan actividades.
-- Eventos `CREATED_TASK`, `UPDATED_TASK`, `REASSIGNED_TASK` y `COMPLETED_TASK` en la misma transacción que la operación. La auditoría guarda referencias, responsable anterior cuando cambia y nombres de campos modificados, no título ni descripción completos.
-- Componentes reutilizados en ficha y «Mis tareas», con CSS Modules propios, controles comunes y manejo compartido de mutaciones. Actividades y tareas comparten la comprobación bloqueante de acceso al cliente y el formato de fechas UTC.
+- Las escrituras nuevas emiten eventos `*_ACTIVITY` en la misma transacción. Los nombres `*_TASK` solo se aceptan para poder leer auditoría histórica.
+- La ficha usa un único formulario y una única entrada visual para registrar actividades pendientes o completadas. «Mis tareas» continúa como vista filtrada y las rutas `/tasks` se conservan como capa de compatibilidad, pero operan sobre la tabla `activities` y su ciclo de vida común.
 
 ### 4.10 AuditLog
 
@@ -507,37 +523,37 @@ Flujo:
 
 Guardar `department_id` en la actividad conserva el contexto histórico aunque el usuario cambie de departamento posteriormente.
 
-Implementación de la fase 8:
+Implementación actual:
 
-- API bajo `/api/v1/clients/{client_id}/activities`: `GET` lista, `POST` registra y `PATCH /{activity_id}` corrige los campos editables. No existe endpoint de eliminación. Los cuerpos rechazan campos extra, incluidos identificadores de autor u organización enviados por el navegador.
+- API bajo `/api/v1/clients/{client_id}/activities`: `GET` lista el seguimiento, `POST` registra una actividad pendiente o completada, `PATCH /{activity_id}` corrige, `POST /{activity_id}/complete` completa y `DELETE /{activity_id}` elimina pendientes con alcance `THIS` o `THIS_AND_FOLLOWING`. Los cuerpos rechazan identificadores de autor u organización enviados por el navegador.
 - El propietario empresarial puede elegir cualquier departamento existente de su organización; admins y empleados solo sus membresías actuales. Una única opción se resuelve automáticamente; sin opciones no se permite registrar. El owner individual registra sin departamento.
-- El listado aplica organización, acceso al cliente y alcance departamental en backend. Incluye filtros opcionales por tipo y departamento, 20 elementos por defecto (máximo 100) y paginación por offset con orden descendente `occurred_at, id`. Se elige esta paginación sencilla frente a cursores para el volumen inicial; el índice por organización, cliente y fecha permite evolucionarla si se necesita.
-- La ficha utiliza componentes separados para sección, entrada y formulario, cada uno con CSS Modules. Crear y corregir reutilizan el mismo formulario y los controles comunes. Las fechas se envían con zona horaria y se muestran/editan explícitamente en UTC; dejar vacía la fecha al crear registra la hora actual.
+- El listado aplica organización, acceso al cliente y alcance departamental en backend. Incluye filtros por tipo normalizado, departamento, estado y posición temporal, con paginación por offset y orden estable por `scheduled_for` e identificador.
+- La ficha utiliza componentes separados para panel, entrada, formulario, recurrencia y gestión de tipos, cada uno con CSS Modules. Crear y corregir reutilizan controles comunes. La fecha de trabajo es una fecha local de calendario y comienza en hoy.
 - Las claves foráneas compuestas impiden referencias entre organizaciones. Los departamentos con actividad no pueden eliminarse: se devuelve un conflicto sin alterar sus membresías ni su historial.
 - `CREATED_ACTIVITY` y `UPDATED_ACTIVITY` se confirman en la misma transacción que la actividad; un fallo revierte la operación. La auditoría guarda referencias y nombres de campos modificados, nunca descripciones completas ni próximas acciones. No es un archivo de versiones del contenido.
-- La próxima acción es texto orientativo: no crea tareas ni envía correos. Esas capacidades no se incorporan en esta fase.
+- La próxima acción es texto orientativo. La recurrencia solo se crea cuando el usuario elige una regla explícita; el texto libre no genera trabajo ni envía correos.
 
 ## 8. Historial del cliente
 
-El historial se construye inicialmente a partir de actividades y tareas, ordenadas por fecha, aplicando autorización en backend. No se introduce una tabla genérica de timeline: añadir esa abstracción ahora duplicaría datos y no está justificado.
+El seguimiento se construye a partir de una única tabla de actividades, proyectada como registros actuales, históricos o programados, con autorización aplicada en backend. No se introduce una tabla genérica de timeline porque duplicaría datos.
 
-El frontend puede presentar una vista unificada, pero cada elemento mantiene su contrato de dominio.
+El frontend presenta un único concepto y formulario; las proyecciones heredadas mantienen estable el contrato de «Mis tareas».
 
 Implementación de la fase 10 (09/09/2026):
 
-- `GET /api/v1/clients/{client_id}/history` valida primero el acceso al cliente y combina consultas autorizadas mediante `UNION ALL`. Admite filtro `kind=ACTIVITY|TASK`, offset y límite de 20 por defecto (máximo 100), con un elemento extra para calcular `has_more`.
-- El orden descendente usa la fecha, el tipo de registro y el UUID como desempate. Una actividad se fecha por `occurred_at`; una tarea, por `completed_at` o, si está pendiente, por `created_at`. Cada tarea aparece una sola vez con su estado actual. Se muestra el autor de la actividad y el responsable de la tarea, no se atribuye la finalización al responsable ni se reconstruyen versiones anteriores. El historial no sustituye a la auditoría de la fase 11.
-- Se elige consulta directa sobre las tablas existentes frente a una tabla de timeline o vista materializada: evita duplicación, sincronización y nuevos procesos. La paginación por offset mantiene la sencillez inicial; puede evolucionar a cursor si el volumen lo exige. Con cambios concurrentes, las páginas no constituyen una instantánea inmutable.
+- Las consultas de seguimiento validan primero el acceso al cliente y filtran directamente `activities`. El historial y las actividades de hoy se ordenan en sentido descendente; las programadas futuras, ascendente.
+- Cada actividad aparece una sola vez con su estado actual, creador, responsable, departamento, tipo y fechas relevantes. No se reconstruyen versiones anteriores; el seguimiento no sustituye a la auditoría.
+- Se elige consulta directa sobre `activities`, sin tabla de timeline ni vista materializada: evita duplicación, sincronización y nuevos procesos. La paginación por offset mantiene la sencillez inicial; puede evolucionar a cursor si el volumen lo exige. Con cambios concurrentes, las páginas no constituyen una instantánea inmutable.
 - `services/scopes.py` centraliza consultas de clientes, actividades y tareas reutilizadas por los listados, el historial y el dashboard. El filtro de autorización se aplica en SQL antes de contar, ordenar o limitar; nunca se recupera un conjunto global para ocultarlo en frontend.
 - `GET /api/v1/dashboard` cuenta clientes, tareas pendientes/completadas y actividades del alcance autorizado. Añade hasta cinco actividades recientes y cinco tareas pendientes, ordenadas por vencimiento (sin fecha al final). Las cantidades se calculan sobre todos los registros autorizados, no solo sobre estos cinco elementos.
 - El owner empresarial obtiene el conjunto de su organización y un resumen por departamento. El admin conserva el catálogo global de clientes, pero actividades, tareas y empleados se restringen a su alcance; sus tareas incluyen las propias y las de empleados, no las de otros admins u owners. Los empleados compartidos se cuentan una sola vez en el total y una vez en cada departamento correspondiente.
 - El empleado recibe sus clientes asignados, sus tareas autorizadas y actividad visible de esos clientes en sus departamentos actuales. El owner individual recibe sus datos sin departamentos, asignaciones ficticias ni métricas de jerarquía. Los campos de gestión no aplicables son nulos y el resumen departamental está vacío.
-- El frontend reutiliza `HistoryItem` en historial y dashboard, separa los indicadores en `MetricCard` y mantiene CSS Modules por componente. Los filtros del historial conservan los de actividades y tareas; no hay edición desde estas vistas ni dashboards configurables.
-- No se añaden dependencias, tablas ni migraciones. Las pruebas cubren roles, organizaciones, modo individual, retirada de acceso, orden/paginación, identificadores coincidentes entre tablas y límites de los resúmenes.
+- El frontend reutiliza `HistoryItem` en el dashboard, separa los indicadores en `MetricCard` y mantiene CSS Modules por componente. La ficha reúne creación, consulta y acciones permitidas en «Seguimiento del cliente», con filtros para actividades, tareas pendientes y tareas completadas. La API continúa aplicando permisos antes de combinar los registros; no hay dashboards configurables.
+- La fase 10 original no añadió dependencias ni migraciones. La unificación posterior sí incorpora una migración que traslada las tareas a `activities`; las pruebas cubren roles, organizaciones, modo individual, retirada de acceso, orden/paginación y límites de los resúmenes.
 
 ## 9. Flujo conceptual de IA
 
-La IA se implementará después de completar y validar permisos, actividades e historial.
+La fase 12 añade resúmenes tras completar y validar permisos, actividades e historial. La integración está desactivada por defecto; su activación y calidad con un modelo real siguen pendientes de decisión y evaluación.
 
 Flujo:
 
@@ -552,7 +568,9 @@ Flujo:
 
 El LLM no recibe datos antes de la autorización, no decide permisos y no infiere el departamento. En modo individual produce un resumen único sin agrupaciones departamentales artificiales.
 
-La integración se abstraerá mediante un adaptador para poder comparar proveedores antes de elegir. Se prevén posteriormente una modalidad gratuita con límites y una modalidad de pago con el proveedor que ofrezca mejor calidad, pero precios, proveedores y límites no se fijan hasta evaluar resultados al final del núcleo funcional. Retención, consentimiento y modalidad local/externa también deben cerrarse antes de esta fase.
+La integración utiliza un contrato `SummaryProvider` y adaptadores HTTP para Ollama, OpenAI, Anthropic y Gemini, sin colas, agentes ni ejecución de herramientas. La selección y agrupación vive en `summary_context.py`, la coordinación y auditoría en `summaries.py` y el transporte en `summary_provider.py`. `ai_configurations` conserva una selección por organización y el token cifrado con AES-GCM; solo el owner puede leer el estado o modificarla. La clave maestra procede del entorno de despliegue, no de la base de datos. La API nunca devuelve el token y la auditoría solo registra proveedor y modelo.
+
+Se documentan alternativas gratuitas/locales y de pago, sin elegir un ganador de calidad no medido. Se requiere configurar y revisar el tratamiento de datos del proveedor externo; no existe fallback local-a-cloud. Los eventos de solicitud se confirman antes del envío. La caché técnica conserva respuestas idénticas durante un periodo corto; `ai_summary_latest` guarda la última sección validada por departamento o cliente con fechas de generación y cobertura. La lectura vuelve a comprobar permisos y fuentes visibles. No se convierten en actividades ni modifican tareas. Contratos, límites, retención, riesgos de texto libre y pasos pendientes en [AI_SUMMARIES.md](AI_SUMMARIES.md).
 
 ## 10. Transacciones y auditoría
 
@@ -598,7 +616,7 @@ Licencias, `installation_id`, empaquetado del backend y registry privado son opc
 
 Las decisiones de producto principales de la Fase 0 están cerradas. Permanecen estas decisiones operativas antes de sus fases correspondientes:
 
-1. Confirmar quién operará backups, certificados y actualizaciones en la primera instalación Docker Compose sobre VPS o servidor del cliente.
+1. Confirmar quién operará backups, alertas y actualizaciones en la primera instalación Docker Compose sobre VPS. Caddy automatiza los certificados, pero sigue siendo necesario supervisar su renovación.
 2. Para IA: comparar proveedores gratuitos y de pago y decidir residencia/retención de datos, consentimiento, presupuesto y posibilidad de procesamiento local.
 
 Las fases que no dependan de una respuesta pueden comenzar con decisiones conservadoras documentadas. Las preguntas que afectan permisos deben cerrarse antes de exponer el recurso correspondiente.

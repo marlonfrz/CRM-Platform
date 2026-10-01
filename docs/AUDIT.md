@@ -4,7 +4,7 @@
 
 El owner empresarial o individual puede consultar `/audit` en el frontend y `GET /api/v1/audit` en el backend. La política `can_view_audit` exige owner y la misma organización. Admin y employee reciben 403; sin sesión se recibe 401. No se incorporan endpoints de creación, edición ni eliminación de auditoría.
 
-La consulta aplica organización antes de filtros, orden y paginación. Los filtros opcionales son `action`, `actor_user_id`, `entity_id`, `since` y `until`. Las fechas deben incluir zona horaria y los extremos son inclusivos; el frontend las presenta en UTC. Un rango invertido es inválido. `offset` admite 0–100000 y `limit` 1–100 (20 por defecto). El orden es `created_at DESC, id DESC`; un elemento adicional calcula `has_more`. Una acción desconocida devuelve un listado vacío, sin revelar datos de otra organización.
+La consulta aplica organización antes de filtros, orden y paginación. La interfaz separa los eventos en «Accesos», «Equipo y permisos», «Clientes», «Actividad», «Organización» e «IA»; cada área limita también las acciones disponibles en el selector detallado. Los filtros opcionales de API son `category`, `action`, `actor_user_id`, `entity_id`, `since` y `until`. Las fechas deben incluir zona horaria y los extremos son inclusivos; el frontend las presenta en UTC. Un rango invertido es inválido. `offset` admite 0–100000 y `limit` 1–100 (20 por defecto). El orden es `created_at DESC, id DESC`; un elemento adicional calcula `has_more`. Una acción desconocida devuelve un listado vacío, sin revelar datos de otra organización.
 
 Se elige offset frente a cursores para mantener el contrato sencillo del MVP. Eventos insertados entre consultas pueden desplazar las páginas: no se promete una instantánea de exportación. El índice `(organization_id, created_at, id)` evita ordenar toda la tabla en las consultas habituales. No se añade Elasticsearch, cola ni servicio de logs externo.
 
@@ -25,19 +25,20 @@ El contrato ejecutable está en `backend/app/schemas/audit.py` (`EVENT_FIELDS`).
 | Asignaciones | `ASSIGNED_CLIENT`, `UNASSIGNED_CLIENT` | UUID del cliente y empleado |
 | Actividades | `CREATED_ACTIVITY`, `UPDATED_ACTIVITY` | Cliente, autor, departamento y nombres de campos cambiados |
 | Tareas | `CREATED_TASK`, `UPDATED_TASK`, `REASSIGNED_TASK`, `COMPLETED_TASK` | Cliente, departamento, responsable y campos cambiados; reasignación incluye responsable anterior |
+| IA | `UPDATED_AI_CONFIGURATION`, `AI_SUMMARY_REQUESTED`, `AI_SUMMARY_COMPLETED`, `AI_SUMMARY_FAILED` | Proveedor, modelo, alcance y referencias de origen; nunca token, prompt ni respuesta generada |
 
 Una actualización de usuario cubre el cambio de rol y de membresías en un único evento. La creación inicial de invitación forma parte de `CREATED_USER`. Desactivación y cambio de contraseña incluyen la revocación transaccional de sesiones sin registrar un evento por sesión. La eliminación de departamento implica la retirada de sus membresías; no se duplican eventos por cada miembro. Los helpers internos de construcción de fixtures no son interfaces administrativas públicas.
 
-No se reconstruyen eventos que nunca se registraron en versiones anteriores. No se registran todas las lecturas, renovaciones de sesión, intentos fallidos anónimos ni expiraciones temporales automáticas. Estos últimos requerirían una política específica de volumen, privacidad y atribución; no se añaden al catálogo operativo en esta fase.
+No se reconstruyen eventos que nunca se registraron en versiones anteriores. `UPDATED_USER` significa que cambiaron datos del perfil, rol o departamentos; no representa una renovación de sesión. No se registran todas las lecturas, refresh tokens, renovaciones de sesión, intentos fallidos anónimos ni expiraciones temporales automáticas. Estos últimos requerirían una política específica de volumen, privacidad y atribución; no se añaden al catálogo operativo en esta fase.
 
 ## Contrato de metadatos y privacidad
 
 - Cada acción tiene entidad y claves permitidas. Los campos desconocidos, entidades incompatibles, UUID inválidos o valores fuera del contrato abortan la escritura.
 - Máximo 8192 bytes JSON UTF-8 por evento, nombres de hasta 200 caracteres, hasta 20 nombres de campos modificados y hasta 100 UUID por lista de membresías. No se trunca información silenciosamente. Las capacidades que necesiten superar estos límites deberán ampliar el contrato y sus pruebas antes de desplegarse.
 - Solo se guardan nombres de campos para los contenidos privados, no sus valores. No se guardan contraseñas, hashes, tokens, enlaces de invitación ni cuerpos de correo.
-- Los nombres de autores se resuelven con el usuario actual y su organización: el UUID identifica al actor de forma estable, pero su nombre mostrado no es una instantánea histórica. Un actor nulo se presenta como Sistema. Los IDs de recursos borrados siguen disponibles aunque la ficha ya no exista.
+- Los nombres de autores, clientes, responsables, departamentos, contactos y actividades se resuelven dentro de la organización al consultar. El UUID mantiene la referencia estable en la API, pero la interfaz presenta nombres comprensibles y no expone códigos de acción. Los nombres mostrados son los actuales, no una instantánea histórica; para recursos eliminados se usa el nombre conservado en los metadatos cuando existe. Un actor nulo se presenta como Sistema. Las sesiones conservan su identificador porque no tienen un nombre funcional alternativo.
 - La lectura filtra metadatos antiguos por la lista permitida y devuelve `{}` si no puede validarlos. Esto oculta, por ejemplo, emails guardados por versiones anteriores al crear usuarios. No modifica ni purga esos registros originales: los backups y el acceso directo a PostgreSQL siguen siendo sensibles.
-- La interfaz presenta metadatos aprobados dentro de detalles desplegables, con textos escapados. No ofrece descarga ni exportación masiva.
+- La interfaz presenta metadatos aprobados dentro de detalles desplegables, con etiquetas y valores traducidos: perfiles, alcances, campos modificados y errores se expresan en lenguaje de usuario. El filtro de persona usa nombres aunque internamente envíe el identificador estable. Los textos se escapan y no se ofrece descarga ni exportación masiva.
 
 ## Transacciones e inmutabilidad
 

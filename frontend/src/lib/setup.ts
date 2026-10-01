@@ -1,4 +1,5 @@
 export async function isInstallationInitialized() {
+  if (process.env.DEMO_MODE === "true") return true;
   const response = await fetch(
     `${process.env.BACKEND_INTERNAL_URL ?? "http://localhost:8000"}/api/v1/setup/status`,
     { cache: "no-store" },

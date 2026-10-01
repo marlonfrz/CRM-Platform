@@ -1,0 +1,6 @@
+.list { display: grid; gap: 1rem; }
+.list h2 { margin: 0; font-size: 1.15rem; }
+.list p { margin: 0; }
+.entry { display: grid; gap: .5rem; }
+.meta { display: flex; flex-wrap: wrap; gap: .35rem 1.25rem; color: var(--color-muted); font-size: .9rem; }
+.meta strong { color: var(--color-text); }

@@ -1,13 +1,22 @@
 from argon2 import PasswordHasher
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import Organization, OrganizationMode, User, UserRole, UserStatus
+from app.models import ActivityType, Organization, OrganizationMode, User, UserRole, UserStatus
+from app.models.activity_type import activity_type_identifier
 from app.services.audit import add_audit_event
 from app.services.exceptions import InstallationAlreadyInitializedError
 from app.services.installation import is_installation_initialized, lock_installation_setup
 from app.services.normalization import normalize_email, normalize_name
 
 password_hasher = PasswordHasher()
+DEFAULT_ACTIVITY_TYPES = (
+    ("Llamada", "llamada"),
+    ("Email", "email"),
+    ("Reunión", "reunión"),
+    ("Nota", "nota"),
+    ("Incidencia", "incidencia"),
+    ("Otro", "otro"),
+)
 
 
 async def bootstrap_organization(
@@ -35,6 +44,20 @@ async def bootstrap_organization(
         status=UserStatus.ACTIVE,
     )
     session.add_all([organization, owner])
+    await session.flush()
+    session.add_all(
+        [
+            ActivityType(
+                id=activity_type_identifier(organization.id, normalized),
+                organization_id=organization.id,
+                department_id=None,
+                name=name,
+                normalized_name=normalized,
+                is_active=True,
+            )
+            for name, normalized in DEFAULT_ACTIVITY_TYPES
+        ]
+    )
     await session.flush()
     add_audit_event(
         session,

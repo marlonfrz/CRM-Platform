@@ -9,7 +9,6 @@ from app.models import (
     DepartmentMember,
     Organization,
     OrganizationMode,
-    Task,
     User,
 )
 from app.policies.authorization import (
@@ -156,18 +155,6 @@ async def delete_department(
     department = await _authorized_department(session, authorization, department_id)
     if (
         await session.scalar(
-            select(Task.id)
-            .where(
-                Task.organization_id == authorization.organization_id,
-                Task.department_id == department_id,
-            )
-            .limit(1)
-        )
-        is not None
-    ):
-        raise ResourceConflictError("Departments with tasks cannot be deleted")
-    if (
-        await session.scalar(
             select(Activity.id)
             .where(
                 Activity.organization_id == authorization.organization_id,
@@ -177,7 +164,7 @@ async def delete_department(
         )
         is not None
     ):
-        raise ResourceConflictError("Departments with historical activities cannot be deleted")
+        raise ResourceConflictError("Departments with activities cannot be deleted")
     add_audit_event(
         session,
         organization_id=authorization.organization_id,

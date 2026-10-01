@@ -1,3 +1,5 @@
-.card { display: flex; flex-direction: column; justify-content: space-between; gap: 1rem; min-width: 0; min-height: 8rem; }
+.card { position: relative; display: flex; flex-direction: column; justify-content: space-between; gap: 1rem; min-width: 0; min-height: 8rem; overflow: hidden; }
+.card::after { position: absolute; right: -1rem; bottom: -1.6rem; width: 5rem; height: 5rem; border-radius: 50%; background: var(--color-primary-soft); content: ""; }
+.card span, .card strong { position: relative; z-index: 1; }
 .card span { color: var(--color-muted); font-size: .85rem; line-height: 1.4; }
 .card strong { font-size: 2rem; line-height: 1.15; font-variant-numeric: tabular-nums; }

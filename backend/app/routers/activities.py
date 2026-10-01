@@ -6,10 +6,23 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import Principal, get_authorization_context, require_csrf
 from app.db.dependencies import get_db_session
-from app.models.activity import ActivityType
+from app.models.activity import ActivityStatus
 from app.policies.authorization import AuthorizationContext
-from app.schemas.activities import ActivityCorrection, ActivityPage, ActivityRequest
-from app.services.activities import correct_activity, create_activity, list_activities
+from app.schemas.activities import (
+    ActivityPage,
+    ActivityPeriod,
+    ActivityRequest,
+    ActivityUpdate,
+    DeleteScope,
+    LegacyActivityType,
+)
+from app.services.activities import (
+    complete_activity,
+    create_activity,
+    delete_activity,
+    list_activities,
+    update_activity,
+)
 from app.services.exceptions import DomainError
 
 from .errors import domain_http_exception
@@ -22,8 +35,12 @@ async def get_activities(
     client_id: UUID,
     authorization: Annotated[AuthorizationContext, Depends(get_authorization_context)],
     session: Annotated[AsyncSession, Depends(get_db_session)],
-    activity_type: ActivityType | None = None,
+    activity_type_id: UUID | None = None,
+    activity_type: LegacyActivityType | None = None,
     department_id: UUID | None = None,
+    activity_status: ActivityStatus | None = None,
+    period: ActivityPeriod | None = None,
+    scheduled: bool | None = None,
     offset: Annotated[int, Query(ge=0, le=100000)] = 0,
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> ActivityPage:
@@ -32,8 +49,12 @@ async def get_activities(
             session,
             authorization=authorization,
             client_id=client_id,
-            activity_type=activity_type,
+            activity_type_id=activity_type_id,
+            legacy_type=activity_type,
             department_id=department_id,
+            status=activity_status,
+            period=period,
+            scheduled=scheduled,
             offset=offset,
             limit=limit,
         )
@@ -48,15 +69,15 @@ async def post_activity(
     _: Annotated[Principal, Depends(require_csrf)],
     authorization: Annotated[AuthorizationContext, Depends(get_authorization_context)],
     session: Annotated[AsyncSession, Depends(get_db_session)],
-) -> dict[str, UUID]:
+) -> dict[str, UUID | list[UUID]]:
     try:
-        activity = await create_activity(
+        activities = await create_activity(
             session,
             authorization=authorization,
             client_id=client_id,
             payload=payload,
         )
-        return {"id": activity.id}
+        return {"id": activities[0].id, "ids": [activity.id for activity in activities]}
     except DomainError as exc:
         raise domain_http_exception(exc) from exc
 
@@ -65,18 +86,58 @@ async def post_activity(
 async def patch_activity(
     client_id: UUID,
     activity_id: UUID,
-    payload: ActivityCorrection,
+    payload: ActivityUpdate,
     _: Annotated[Principal, Depends(require_csrf)],
     authorization: Annotated[AuthorizationContext, Depends(get_authorization_context)],
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> None:
     try:
-        await correct_activity(
+        await update_activity(
             session,
             authorization=authorization,
             client_id=client_id,
             activity_id=activity_id,
             payload=payload,
+        )
+    except DomainError as exc:
+        raise domain_http_exception(exc) from exc
+
+
+@router.post("/{activity_id}/complete", status_code=status.HTTP_204_NO_CONTENT)
+async def post_complete_activity(
+    client_id: UUID,
+    activity_id: UUID,
+    _: Annotated[Principal, Depends(require_csrf)],
+    authorization: Annotated[AuthorizationContext, Depends(get_authorization_context)],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> None:
+    try:
+        await complete_activity(
+            session,
+            authorization=authorization,
+            client_id=client_id,
+            activity_id=activity_id,
+        )
+    except DomainError as exc:
+        raise domain_http_exception(exc) from exc
+
+
+@router.delete("/{activity_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_activity(
+    client_id: UUID,
+    activity_id: UUID,
+    _: Annotated[Principal, Depends(require_csrf)],
+    authorization: Annotated[AuthorizationContext, Depends(get_authorization_context)],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    scope: DeleteScope = "THIS",
+) -> None:
+    try:
+        await delete_activity(
+            session,
+            authorization=authorization,
+            client_id=client_id,
+            activity_id=activity_id,
+            scope=scope,
         )
     except DomainError as exc:
         raise domain_http_exception(exc) from exc

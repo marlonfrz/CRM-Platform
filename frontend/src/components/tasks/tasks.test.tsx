@@ -58,7 +58,7 @@ describe("Tasks", () => {
 
   it("my tasks link to their client and permit completion without a duplicate editing form", () => {
     const markup = renderToStaticMarkup(<TaskEntry task={task} options={null} />);
-    expect(markup).toContain('href="/clients/client#tasks"');
+    expect(markup).toContain('href="/clients/client?tracking_filter=TASK_PENDING#tracking"');
     expect(markup).toContain("Completar tarea");
     expect(markup).not.toContain("Editar tarea");
   });
@@ -70,6 +70,16 @@ describe("Tasks", () => {
     expect(markup).toContain("No hay tareas visibles");
     expect(markup).not.toContain("Nueva tarea");
     expect(markup).toContain("activity_type=NOTE&amp;offset=40&amp;task_offset=40&amp;task_status=PENDING#tasks");
+  });
+
+  it("renders pending tasks before completed tasks", () => {
+    const completed = { ...task, id: "completed", title: "Completed task", status: "COMPLETED" as const };
+    const pending = { ...task, id: "pending", title: "Pending task" };
+    const markup = renderToStaticMarkup(<TasksPanel
+      page={{ items: [completed, pending], options, has_more: false }}
+      filters={{ status: "", offset: 0 }}
+    />);
+    expect(markup.indexOf("Pending task")).toBeLessThan(markup.indexOf("Completed task"));
   });
 
   it("normalizes filters and serializes only accepted API fields", () => {

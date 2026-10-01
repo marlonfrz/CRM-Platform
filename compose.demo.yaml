@@ -1,0 +1,21 @@
+name: crm-platform-demo
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      target: production
+      args:
+        DEMO_MODE: "true"
+    environment:
+      DEMO_MODE: "true"
+      HOSTNAME: 0.0.0.0
+    ports:
+      - "${DEMO_BIND_ADDRESS:-127.0.0.1}:${DEMO_PORT:-4173}:3000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s

@@ -27,6 +27,21 @@ services:
     networks:
       - crm_internal
 
+  ollama:
+    image: ollama/ollama:latest
+    profiles: ["ai"]
+    environment:
+      OLLAMA_NO_CLOUD: "1"
+    volumes:
+      - ollama_data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - crm_internal
+
   backend:
     build:
       context: ./backend
@@ -40,6 +55,16 @@ services:
       SMTP_HOST: mailpit
       SMTP_PORT: 1025
       SMTP_STARTTLS: "false"
+      AI_PROVIDER: ${AI_PROVIDER:-disabled}
+      AI_MODEL: ${AI_MODEL:-}
+      AI_OLLAMA_URL: ${AI_OLLAMA_URL:-http://ollama:11434}
+      AI_OLLAMA_LOCAL_CONFIRMED: ${AI_OLLAMA_LOCAL_CONFIRMED:-true}
+      AI_OPENAI_API_KEY: ${AI_OPENAI_API_KEY:-}
+      AI_ANTHROPIC_API_KEY: ${AI_ANTHROPIC_API_KEY:-}
+      AI_GEMINI_API_KEY: ${AI_GEMINI_API_KEY:-}
+      AI_CREDENTIALS_ENCRYPTION_KEY: ${AI_CREDENTIALS_ENCRYPTION_KEY:-development-only-ai-key-change-before-production}
+      AI_TIMEOUT_SECONDS: ${AI_TIMEOUT_SECONDS:-180}
+      AI_CACHE_TTL_SECONDS: ${AI_CACHE_TTL_SECONDS:-900}
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
       - ./backend/app:/app/app
@@ -85,6 +110,7 @@ services:
 
 volumes:
   postgres_data:
+  ollama_data:
 
 networks:
   crm_internal:

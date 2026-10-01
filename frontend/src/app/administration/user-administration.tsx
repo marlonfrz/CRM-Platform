@@ -37,6 +37,8 @@ export function UserAdministration({ actorRole, currentUserId, departments, user
   const [editing, setEditing] = useState<User | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState("");
+  const [roleFilter, setRoleFilter] = useState("ALL");
+  const [departmentFilter, setDepartmentFilter] = useState("ALL");
 
   async function mutate(path: string, method: string, body?: object) {
     setError("");
@@ -79,6 +81,10 @@ export function UserAdministration({ actorRole, currentUserId, departments, user
   const roleOptions = actorRole === "OWNER"
     ? [{ label: "Administrador", value: "ADMIN" }, { label: "Empleado", value: "EMPLOYEE" }]
     : [{ label: "Empleado", value: "EMPLOYEE" }];
+  const filteredUsers = users.filter((user) =>
+    (roleFilter === "ALL" || user.role === roleFilter)
+    && (departmentFilter === "ALL" || user.department_ids.includes(departmentFilter))
+  );
 
   return (
     <Card className={styles.card}>
@@ -113,9 +119,30 @@ export function UserAdministration({ actorRole, currentUserId, departments, user
           </div>
         </form>
       ) : null}
+      <div className={styles.filters} aria-label="Filtros del equipo">
+        <SelectField
+          label="Filtrar por departamento"
+          name="departmentFilter"
+          value={departmentFilter}
+          onChange={(event) => setDepartmentFilter(event.target.value)}
+          options={[{ label: "Todos los departamentos", value: "ALL" }, ...departments.map((department) => ({ label: department.name, value: department.id }))]}
+        />
+        <SelectField
+          label="Filtrar por rol"
+          name="roleFilter"
+          value={roleFilter}
+          onChange={(event) => setRoleFilter(event.target.value)}
+          options={[
+            { label: "Todos los roles", value: "ALL" },
+            { label: "Propietario", value: "OWNER" },
+            { label: "Administrador", value: "ADMIN" },
+            { label: "Empleado", value: "EMPLOYEE" },
+          ]}
+        />
+      </div>
       <div className={styles.userList}>
-        {users.length === 0 ? <MutedText className={styles.empty}>Todavía no hay usuarios disponibles.</MutedText> : null}
-        {users.map((user) => {
+        {filteredUsers.length === 0 ? <MutedText className={styles.empty}>{users.length === 0 ? "Todavía no hay usuarios disponibles." : "No hay usuarios que coincidan con los filtros."}</MutedText> : null}
+        {filteredUsers.map((user) => {
           const names = departments.filter((item) => user.department_ids.includes(item.id)).map((item) => item.name);
           const isCurrentUser = user.id === currentUserId;
           const canManageUser = !isCurrentUser && user.role !== "OWNER";
