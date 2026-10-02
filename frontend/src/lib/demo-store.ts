@@ -22,9 +22,9 @@ const ids = {
   it: "20000000-0000-4000-8000-000000000001",
   marketing: "20000000-0000-4000-8000-000000000002",
   sales: "20000000-0000-4000-8000-000000000003",
-  hotel: "30000000-0000-4000-8000-000000000001",
-  teide: "30000000-0000-4000-8000-000000000002",
-  events: "30000000-0000-4000-8000-000000000003",
+  alpha: "30000000-0000-4000-8000-000000000001",
+  beta: "30000000-0000-4000-8000-000000000002",
+  gamma: "30000000-0000-4000-8000-000000000003",
   call: "40000000-0000-4000-8000-000000000001",
   work: "40000000-0000-4000-8000-000000000002",
 };
@@ -79,26 +79,26 @@ function nextOccurrence(start: string, rule: DemoRecurrence): string | null {
 function initialState(): DemoState {
   const now = iso();
   const clients: DemoClient[] = [
-    { id: ids.hotel, name: "Hotel Botánico", address: "Puerto de la Cruz, Tenerife", notes: "Seguimiento del formulario de reservas y mantenimiento preventivo.", created_at: now, updated_at: now, assigned_user_ids: [ids.tech, ids.admin], contacts: [
-      { id: randomUUID(), full_name: "Elena Díaz", position: "Directora de operaciones", email: "elena.diaz@example.test", phone: "+34 922 000 101", notes: "Contacto principal para reservas.", created_at: now, updated_at: now },
-      { id: randomUUID(), full_name: "Pablo Reyes", position: "Responsable de reservas", email: "pablo.reyes@example.test", phone: "+34 922 000 102", notes: null, created_at: now, updated_at: now },
+    { id: ids.alpha, name: "Cliente Alfa", address: "Calle Ejemplo 1, Ciudad Ejemplo", notes: "Seguimiento del formulario de reservas y mantenimiento preventivo.", created_at: now, updated_at: now, assigned_user_ids: [ids.tech, ids.admin], contacts: [
+      { id: randomUUID(), full_name: "Contacto Alfa Uno", position: "Dirección de operaciones", email: "contacto.alfa.uno@example.test", phone: "+34 922 000 101", notes: "Contacto principal para reservas.", created_at: now, updated_at: now },
+      { id: randomUUID(), full_name: "Contacto Alfa Dos", position: "Responsable de reservas", email: "contacto.alfa.dos@example.test", phone: "+34 922 000 102", notes: null, created_at: now, updated_at: now },
     ] },
-    { id: ids.teide, name: "Grupo Teide", address: "Las Palmas de Gran Canaria", notes: "Propuesta anual pendiente.", created_at: now, updated_at: now, assigned_user_ids: [ids.admin, ids.owner], contacts: [
-      { id: randomUUID(), full_name: "Jorge Medina", position: "Director comercial", email: "jorge.medina@example.test", phone: "+34 928 000 404", notes: null, created_at: now, updated_at: now },
+    { id: ids.beta, name: "Cliente Beta", address: "Calle Ejemplo 2, Ciudad Ejemplo", notes: "Propuesta anual pendiente.", created_at: now, updated_at: now, assigned_user_ids: [ids.admin, ids.owner], contacts: [
+      { id: randomUUID(), full_name: "Contacto Beta", position: "Dirección comercial", email: "contacto.beta@example.test", phone: "+34 928 000 404", notes: null, created_at: now, updated_at: now },
     ] },
-    { id: ids.events, name: "Canarias Eventos", address: "Santa Cruz de Tenerife", notes: "Campaña de otoño.", created_at: now, updated_at: now, assigned_user_ids: [ids.design], contacts: [
-      { id: randomUUID(), full_name: "Lucía Hernández", position: "Directora de proyectos", email: "lucia.hernandez@example.test", phone: "+34 922 000 303", notes: null, created_at: now, updated_at: now },
+    { id: ids.gamma, name: "Cliente Gamma", address: "Calle Ejemplo 3, Ciudad Ejemplo", notes: "Campaña de otoño.", created_at: now, updated_at: now, assigned_user_ids: [ids.design], contacts: [
+      { id: randomUUID(), full_name: "Contacto Gamma", position: "Dirección de proyectos", email: "contacto.gamma@example.test", phone: "+34 922 000 303", notes: null, created_at: now, updated_at: now },
     ] },
   ];
   const users: DemoUser[] = [
-    { id: ids.owner, full_name: "Marlon Farizo", email: "marlon@example.test", role: "OWNER", status: "ACTIVE", department_ids: [ids.it, ids.marketing, ids.sales] },
-    { id: ids.admin, full_name: "Ana Torres", email: "ana@example.test", role: "ADMIN", status: "ACTIVE", department_ids: [ids.sales] },
-    { id: ids.tech, full_name: "David Martín", email: "david@example.test", role: "EMPLOYEE", status: "ACTIVE", department_ids: [ids.it] },
-    { id: ids.design, full_name: "Laura Suárez", email: "laura@example.test", role: "EMPLOYEE", status: "ACTIVE", department_ids: [ids.marketing] },
+    { id: ids.owner, full_name: "Usuario Propietario", email: "owner@example.test", role: "OWNER", status: "ACTIVE", department_ids: [ids.it, ids.marketing, ids.sales] },
+    { id: ids.admin, full_name: "Usuario Administrador", email: "admin@example.test", role: "ADMIN", status: "ACTIVE", department_ids: [ids.sales] },
+    { id: ids.tech, full_name: "Usuario Técnico", email: "tech@example.test", role: "EMPLOYEE", status: "ACTIVE", department_ids: [ids.it] },
+    { id: ids.design, full_name: "Usuario Diseño", email: "design@example.test", role: "EMPLOYEE", status: "ACTIVE", department_ids: [ids.marketing] },
   ];
   const types = [{ id: ids.call, name: "Llamada", department_id: null }, { id: ids.work, name: "Trabajo", department_id: null }];
   const activity = (id: string, client_id: string, title: string, description: string, department_id: string, assigned_to_user_id: string, scheduled_for: string, status: Activity["status"]): Activity => ({
-    id, client_id, user_id: ids.owner, user_name: "Marlon Farizo", assigned_to_user_id,
+    id, client_id, user_id: ids.owner, user_name: "Usuario Propietario", assigned_to_user_id,
     assigned_to_name: users.find((user) => user.id === assigned_to_user_id)?.full_name ?? "",
     department_id, department_name: [{ id: ids.it, name: "Informática" }, { id: ids.marketing, name: "Marketing" }, { id: ids.sales, name: "Comercial" }].find((item) => item.id === department_id)?.name ?? null,
     activity_type_id: ids.work, activity_type_name: "Trabajo", type: legacyType("Trabajo"), title, description, next_action: null,
@@ -107,17 +107,17 @@ function initialState(): DemoState {
     created_at: now, updated_at: now, can_edit: true, can_delete: true,
   });
   const activities = [
-    activity(randomUUID(), ids.hotel, "Confirmar estabilidad con el cliente", "Contactar tras una semana sin incidencias.", ids.it, ids.tech, day(), "PENDING"),
-    activity(randomUUID(), ids.hotel, "Revisión del formulario de reservas", "Se corrigió la validación y se verificó el envío.", ids.it, ids.tech, day(), "COMPLETED"),
-    activity(randomUUID(), ids.teide, "Enviar propuesta de renovación", "Preparar la propuesta anual de soporte.", ids.sales, ids.admin, day(3), "PENDING"),
-    activity(randomUUID(), ids.events, "Planificación de campaña de otoño", "Se revisaron creatividades y calendario.", ids.marketing, ids.design, day(-1), "COMPLETED"),
-    activity(randomUUID(), ids.teide, "Revisar propuesta comercial", "Confirmar condiciones antes de la reunión.", ids.sales, ids.owner, day(2), "PENDING"),
-    activity(randomUUID(), ids.teide, "Preparar presupuesto inicial", "Se revisaron las partidas del servicio anual.", ids.sales, ids.owner, day(), "COMPLETED"),
+    activity(randomUUID(), ids.alpha, "Confirmar estabilidad con el cliente", "Contactar tras una semana sin incidencias.", ids.it, ids.tech, day(), "PENDING"),
+    activity(randomUUID(), ids.alpha, "Revisión del formulario de reservas", "Se corrigió la validación y se verificó el envío.", ids.it, ids.tech, day(), "COMPLETED"),
+    activity(randomUUID(), ids.beta, "Enviar propuesta de renovación", "Preparar la propuesta anual de soporte.", ids.sales, ids.admin, day(3), "PENDING"),
+    activity(randomUUID(), ids.gamma, "Planificación de campaña de otoño", "Se revisaron creatividades y calendario.", ids.marketing, ids.design, day(-1), "COMPLETED"),
+    activity(randomUUID(), ids.beta, "Revisar propuesta comercial", "Confirmar condiciones antes de la reunión.", ids.sales, ids.owner, day(2), "PENDING"),
+    activity(randomUUID(), ids.beta, "Preparar presupuesto inicial", "Se revisaron las partidas del servicio anual.", ids.sales, ids.owner, day(), "COMPLETED"),
   ];
   const audit: AuditEntry[] = [
-    { id: randomUUID(), actor_user_id: ids.tech, actor_name: "David Martín", action: "COMPLETED_ACTIVITY", entity_type: "ACTIVITY", entity_id: activities[1].id, entity_name: activities[1].title, created_at: now, metadata: {}, metadata_names: {} },
-    { id: randomUUID(), actor_user_id: ids.admin, actor_name: "Ana Torres", action: "ASSIGNED_CLIENT", entity_type: "CLIENT_ASSIGNMENT", entity_id: ids.teide, entity_name: "Grupo Teide", created_at: dateTime(-1), metadata: {}, metadata_names: {} },
-    { id: randomUUID(), actor_user_id: ids.owner, actor_name: "Marlon Farizo", action: "CREATED_DEPARTMENT", entity_type: "DEPARTMENT", entity_id: ids.marketing, entity_name: "Marketing", created_at: dateTime(-2), metadata: {}, metadata_names: {} },
+    { id: randomUUID(), actor_user_id: ids.tech, actor_name: "Usuario Técnico", action: "COMPLETED_ACTIVITY", entity_type: "ACTIVITY", entity_id: activities[1].id, entity_name: activities[1].title, created_at: now, metadata: {}, metadata_names: {} },
+    { id: randomUUID(), actor_user_id: ids.admin, actor_name: "Usuario Administrador", action: "ASSIGNED_CLIENT", entity_type: "CLIENT_ASSIGNMENT", entity_id: ids.beta, entity_name: "Cliente Beta", created_at: dateTime(-1), metadata: {}, metadata_names: {} },
+    { id: randomUUID(), actor_user_id: ids.owner, actor_name: "Usuario Propietario", action: "CREATED_DEPARTMENT", entity_type: "DEPARTMENT", entity_id: ids.marketing, entity_name: "Marketing", created_at: dateTime(-2), metadata: {}, metadata_names: {} },
   ];
   return { clients, users, departments: [{ id: ids.it, name: "Informática" }, { id: ids.marketing, name: "Marketing" }, { id: ids.sales, name: "Comercial" }], activities, types, audit, summaries: [],
     aiConfiguration: { provider: "ollama", model: "Muestra preparada", has_api_key: false, source: "organization" } };
@@ -128,10 +128,10 @@ const demoGlobal = globalThis as typeof globalThis & {
   crmDemoInitialState?: DemoState;
   crmDemoSchemaVersion?: number;
 };
-if (demoGlobal.crmDemoSchemaVersion !== 2) {
+if (demoGlobal.crmDemoSchemaVersion !== 3) {
   demoGlobal.crmDemoSessions = new Map();
   demoGlobal.crmDemoInitialState = initialState();
-  demoGlobal.crmDemoSchemaVersion = 2;
+  demoGlobal.crmDemoSchemaVersion = 3;
 }
 const sessions = demoGlobal.crmDemoSessions ??= new Map<string, { state: DemoState; updatedAt: number }>();
 const seed = demoGlobal.crmDemoInitialState ??= initialState();
@@ -179,8 +179,8 @@ export function demoRead(path: string, sessionId?: string): Response {
   const url = parsePath(path);
   const segments = url.pathname.split("/").filter(Boolean);
   const allActivities = [...state.activities].sort((a, b) => Number(b.status === "PENDING") - Number(a.status === "PENDING") || a.scheduled_for.localeCompare(b.scheduled_for));
-  if (url.pathname === "/workspace") return json({ organization_id: ids.organization, user_id: ids.owner, organization_name: "Organización Ejemplo", organization_mode: "BUSINESS", user_name: "Marlon Farizo", user_email: "marlon@example.test", user_role: "OWNER", departments: state.departments } satisfies Workspace);
-  if (url.pathname === "/auth/me") return json({ id: ids.owner, organization_id: ids.organization, email: "marlon@example.test", full_name: "Marlon Farizo", role: "OWNER", status: "ACTIVE" } satisfies AuthenticatedUserResponse);
+  if (url.pathname === "/workspace") return json({ organization_id: ids.organization, user_id: ids.owner, organization_name: "Organización Ejemplo", organization_mode: "BUSINESS", user_name: "Usuario Propietario", user_email: "owner@example.test", user_role: "OWNER", departments: state.departments } satisfies Workspace);
+  if (url.pathname === "/auth/me") return json({ id: ids.owner, organization_id: ids.organization, email: "owner@example.test", full_name: "Usuario Propietario", role: "OWNER", status: "ACTIVE" } satisfies AuthenticatedUserResponse);
   if (url.pathname === "/admin/departments") return json(state.departments);
   if (url.pathname === "/admin/users") return json(state.users);
   if (url.pathname === "/activity-types") return json(state.types);
@@ -262,7 +262,7 @@ function taskPage(state: DemoState, activities: Activity[], url: URL, client: bo
 }
 
 function record(state: DemoState, action: string, entity_type: string, entity_id: string, entity_name: string) {
-  state.audit.unshift({ id: randomUUID(), actor_user_id: ids.owner, actor_name: "Marlon Farizo", action,
+  state.audit.unshift({ id: randomUUID(), actor_user_id: ids.owner, actor_name: "Usuario Propietario", action,
     entity_type, entity_id, entity_name, created_at: iso(), metadata: {}, metadata_names: {} });
 }
 
@@ -335,7 +335,7 @@ export async function demoWrite(path: string, method: string, payload: unknown, 
         const assignee = state.users.find((item) => item.id === assigneeId);
         if (!department || !assignee) return done(error(409, "Invalid assignment"));
         const status = value("status") === "COMPLETED" ? "COMPLETED" : "PENDING";
-        const created: Activity = { id: randomUUID(), client_id: client.id, user_id: ids.owner, user_name: "Marlon Farizo",
+        const created: Activity = { id: randomUUID(), client_id: client.id, user_id: ids.owner, user_name: "Usuario Propietario",
           assigned_to_user_id: assignee.id, assigned_to_name: assignee.full_name, department_id: department.id,
           department_name: department.name, activity_type_id: value("activity_type_id") || ids.work,
           activity_type_name: state.types.find((item) => item.id === value("activity_type_id"))?.name ?? "Trabajo",

@@ -53,17 +53,17 @@ class ClientSeed:
 
 CLIENTS = (
     ClientSeed(
-        name="Atlántico Coworking",
-        address="Calle León y Castillo, 42, Las Palmas de Gran Canaria",
-        notes="Cliente demo interesado en renovar su identidad y mejorar la comunicación digital.",
-        contact_name="Carla Santana",
+        name="Cliente Alfa",
+        address="Calle Ejemplo 1, Ciudad Ejemplo",
+        notes="Interesado en renovar su identidad y mejorar la comunicación digital.",
+        contact_name="Contacto Alfa",
         contact_position="Directora de operaciones",
-        contact_email="carla.santana@example.test",
+        contact_email="contacto.alfa@example.test",
         contact_phone="+34 600 100 201",
         activities=(
             ActivitySeed(
                 "Revisar objetivos de la campaña",
-                "Llamada con Carla para concretar públicos, calendario y objetivos de captación.",
+                "Llamada para concretar públicos, calendario y objetivos de captación.",
                 "Preparar una propuesta visual con dos líneas creativas.",
                 LegacyActivityType.CALL,
                 "comunicación",
@@ -109,12 +109,12 @@ CLIENTS = (
         ),
     ),
     ClientSeed(
-        name="Verde Norte Restauración",
-        address="Avenida de Canarias, 18, Santa Cruz de Tenerife",
-        notes="Cliente demo con seguimiento técnico y planificación de comunicación mensual.",
-        contact_name="Diego Hernández",
+        name="Cliente Beta",
+        address="Calle Ejemplo 2, Ciudad Ejemplo",
+        notes="Seguimiento técnico y planificación de comunicación mensual.",
+        contact_name="Contacto Beta",
         contact_position="Responsable de marketing",
-        contact_email="diego.hernandez@example.test",
+        contact_email="contacto.beta@example.test",
         contact_phone="+34 600 100 202",
         activities=(
             ActivitySeed(

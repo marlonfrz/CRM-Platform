@@ -60,16 +60,16 @@ describe("Owner audit page", () => {
       action: "ASSIGNED_CLIENT",
       entity_type: "CLIENT_ASSIGNMENT",
       entity_id: "22222222-2222-2222-2222-222222222222",
-      entity_name: "Ana · Hotel Norte",
+      entity_name: "Usuario Administrador · Cliente Alfa",
       metadata: {
         client_id: "33333333-3333-3333-3333-333333333333",
         user_id: "44444444-4444-4444-4444-444444444444",
       },
-      metadata_names: { client_id: "Hotel Norte", user_id: "Ana" },
+      metadata_names: { client_id: "Cliente Alfa", user_id: "Usuario Administrador" },
     }} />);
     expect(markup).toContain("Realizado por <strong>Marta</strong>");
-    expect(markup).toContain("Ana · Hotel Norte");
-    expect(markup).toContain("Hotel Norte");
+    expect(markup).toContain("Usuario Administrador · Cliente Alfa");
+    expect(markup).toContain("Cliente Alfa");
     expect(markup).not.toContain("33333333-3333-3333-3333-333333333333");
     expect(markup).not.toContain("ASSIGNED_CLIENT");
   });

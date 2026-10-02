@@ -3,6 +3,20 @@ import { describe, expect, it } from "vitest";
 import { demoRead, demoWrite } from "./demo-store";
 
 describe("Demo API contract", () => {
+  it("uses neutral organization, client, contact and user names", async () => {
+    const workspace = await demoRead("/workspace").json() as { organization_name: string };
+    const clients = await demoRead("/clients").json() as { id: string; name: string }[];
+    const users = await demoRead("/admin/users").json() as { full_name: string }[];
+
+    expect(workspace.organization_name).toBe("Organización Ejemplo");
+    expect(clients.map((client) => client.name)).toEqual(["Cliente Alfa", "Cliente Beta", "Cliente Gamma"]);
+    expect(users.every((user) => user.full_name.startsWith("Usuario "))).toBe(true);
+    for (const client of clients) {
+      const detail = await demoRead(`/clients/${client.id}`).json() as { contacts: { full_name: string }[] };
+      expect(detail.contacts.every((contact) => contact.full_name.startsWith("Contacto "))).toBe(true);
+    }
+  });
+
   it("returns the workspace and authenticated user shapes", async () => {
     const workspace = await demoRead("/workspace").json();
     const user = await demoRead("/auth/me").json();
