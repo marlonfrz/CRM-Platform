@@ -46,12 +46,12 @@ async def test_owner_manages_client_and_contact_lifecycle(
 
     created = await api_client.post(
         "/api/v1/clients",
-        json={"name": "  Hotel Botánico  ", "address": "  Puerto de la Cruz  ", "notes": "VIP"},
+        json={"name": "  Cliente Alfa  ", "address": "  Calle Ejemplo  ", "notes": "VIP"},
         headers=headers,
     )
     assert created.status_code == 201
     client_id = created.json()["id"]
-    assert created.json()["name"] == "Hotel Botánico"
+    assert created.json()["name"] == "Cliente Alfa"
     assert created.json()["contacts"] == []
 
     contact = await api_client.post(
@@ -71,7 +71,7 @@ async def test_owner_manages_client_and_contact_lifecycle(
 
     updated = await api_client.patch(
         f"/api/v1/clients/{client_id}",
-        json={"name": "Hotel Botánico Resort", "address": "Tenerife", "notes": None},
+        json={"name": "Cliente Alfa Actualizado", "address": "Ciudad Ejemplo", "notes": None},
         headers=headers,
     )
     updated_contact = await api_client.patch(
@@ -85,14 +85,14 @@ async def test_owner_manages_client_and_contact_lifecycle(
         },
         headers=headers,
     )
-    listed = await api_client.get("/api/v1/clients", params={"search": "resort"})
+    listed = await api_client.get("/api/v1/clients", params={"search": "actualizado"})
     detail = await api_client.get(f"/api/v1/clients/{client_id}")
     removed = await api_client.delete(
         f"/api/v1/clients/{client_id}/contacts/{contact_id}", headers=headers
     )
 
     assert updated.status_code == 200
-    assert updated.json()["name"] == "Hotel Botánico Resort"
+    assert updated.json()["name"] == "Cliente Alfa Actualizado"
     assert updated_contact.json()["position"] == "Gerencia"
     assert [item["id"] for item in listed.json()] == [client_id]
     assert detail.json()["contacts"][0]["id"] == contact_id

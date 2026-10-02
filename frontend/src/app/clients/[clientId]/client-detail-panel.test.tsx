@@ -9,8 +9,8 @@ vi.mock("next/navigation", () => ({
 
 const client = {
   id: "client-id",
-  name: "Hotel Botánico",
-  address: "Puerto de la Cruz",
+  name: "Cliente Alfa",
+  address: "Calle Ejemplo",
   notes: "Cliente principal",
   created_at: "2026-09-03T10:00:00Z",
   updated_at: "2026-09-03T10:00:00Z",
@@ -32,7 +32,7 @@ describe("ClientDetailPanel", () => {
   it("shows the client and contact management controls", () => {
     const markup = renderToStaticMarkup(<ClientDetailPanel client={client} canManage />);
 
-    expect(markup).toContain("Hotel Botánico");
+    expect(markup).toContain("Cliente Alfa");
     expect(markup).toContain("Ana Pérez");
     expect(markup).toContain("Añadir contacto");
     expect(markup).toContain("Eliminar");
