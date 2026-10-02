@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useActivityMutation } from "@/components/activities/useActivityMutation";
 import { Button } from "@/components/ui/Button";
 import { FormError, MutedText } from "@/components/ui/Text";
-import { Activity, ActivityPage, activityDate, activityTimestamp } from "@/lib/activities";
+import { Activity, activityDate, activityTimestamp } from "@/lib/activities";
 
 import { ActivityForm } from "./activity-form";
 import styles from "./activity-entry.module.css";
@@ -13,10 +13,9 @@ import styles from "./activity-entry.module.css";
 type Props = {
   clientId: string;
   activity: Activity;
-  options: Pick<ActivityPage, "departments" | "candidates" | "activity_types" | "can_create">;
 };
 
-export function ActivityEntry({ clientId, activity, options }: Props) {
+export function ActivityEntry({ clientId, activity }: Props) {
   const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState<"COMPLETE" | "DELETE" | null>(null);
   const [message, setMessage] = useState("");
@@ -58,7 +57,7 @@ export function ActivityEntry({ clientId, activity, options }: Props) {
       </header>
 
       {editing ? (
-        <ActivityForm clientId={clientId} options={options} activity={activity}
+        <ActivityForm clientId={clientId} activity={activity}
           onDone={(changed) => {
             setEditing(false);
             if (changed) setMessage("Cambios guardados.");

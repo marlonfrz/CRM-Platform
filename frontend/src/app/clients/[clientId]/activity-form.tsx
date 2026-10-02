@@ -8,10 +8,10 @@ import { FormField } from "@/components/ui/FormField";
 import { SelectField } from "@/components/ui/SelectField";
 import { TextareaField } from "@/components/ui/TextareaField";
 import { FormError, MutedText } from "@/components/ui/Text";
+import { useActivityOptions } from "@/components/history/ActivityOptionsStore";
 import { apiRequest } from "@/lib/client-api";
 import {
   Activity,
-  ActivityPage,
   ActivityStatus,
   activityFormBody,
   localDateValue,
@@ -20,19 +20,14 @@ import {
 import { RecurrenceFields } from "./RecurrenceFields";
 import styles from "./activity-form.module.css";
 
-type ActivityOptions = Pick<
-  ActivityPage,
-  "departments" | "candidates" | "activity_types" | "can_create"
->;
-
 type Props = {
   clientId: string;
-  options: ActivityOptions;
   activity?: Activity;
   onDone: (saved?: boolean) => void;
 };
 
-export function ActivityForm({ clientId, options, activity, onDone }: Props) {
+export function ActivityForm({ clientId, activity, onDone }: Props) {
+  const options = useActivityOptions();
   const router = useRouter();
   const [status, setStatus] = useState<ActivityStatus>(activity?.status ?? "PENDING");
   const [department, setDepartment] = useState(

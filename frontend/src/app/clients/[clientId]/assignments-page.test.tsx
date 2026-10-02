@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Workspace } from "@/lib/workspace";
+import type { ActivityPage } from "@/lib/activities";
 import { loadWorkspace, serverApi } from "@/lib/workspace";
 import { ClientAssignments } from "./client-assignments";
 import ClientPage from "./page";
@@ -21,12 +22,16 @@ const workspace: Workspace = {
   user_id: "owner", user_name: "Owner", user_email: "owner@example.com", user_role: "OWNER",
   organization_name: "Test", organization_mode: "BUSINESS", departments: [],
 };
+const emptyActivities: ActivityPage = {
+  items: [], departments: [], candidates: [], activity_types: [],
+  can_create: false, can_manage_types: false, has_more: false,
+};
 
 describe("Assignment access in the client page", () => {
   beforeEach(() => {
     vi.mocked(loadWorkspace).mockReset();
     vi.mocked(serverApi).mockReset();
-    vi.mocked(serverApi).mockResolvedValue({ items: [], departments: [], can_create: false, has_more: false });
+    vi.mocked(serverApi).mockResolvedValue(emptyActivities);
   });
 
   it.each(["OWNER", "ADMIN"] as const)("loads the team for a business %s", async (role) => {

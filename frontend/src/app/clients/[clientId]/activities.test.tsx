@@ -10,6 +10,7 @@ import {
   parseActivityFilters,
 } from "@/lib/activities";
 import { TrackingPanel } from "@/components/history/TrackingPanel";
+import { ActivityOptionsProvider } from "@/components/history/ActivityOptionsStore";
 
 import { ActivityEntry } from "./activity-entry";
 import { ActivityForm } from "./activity-form";
@@ -47,7 +48,9 @@ const item: Activity = {
 describe("Unified activities", () => {
   it("uses one form for pending and completed activities", () => {
     const markup = renderToStaticMarkup(
-      <ActivityForm clientId="client" options={options} onDone={() => {}} />,
+      <ActivityOptionsProvider options={options}>
+        <ActivityForm clientId="client" onDone={() => {}} />
+      </ActivityOptionsProvider>,
     );
     expect(markup).toContain('name="status"');
     expect(markup).toContain('name="scheduledFor"');
@@ -58,7 +61,7 @@ describe("Unified activities", () => {
 
   it("shows normalized type, date and allowed management actions", () => {
     const markup = renderToStaticMarkup(
-      <ActivityEntry clientId="client" activity={item} options={options} />,
+      <ActivityEntry clientId="client" activity={item} />,
     );
     expect(markup).toContain("Llamada");
     expect(markup).toContain("Ana · Diseño");

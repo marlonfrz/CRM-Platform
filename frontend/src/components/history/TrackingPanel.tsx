@@ -22,6 +22,7 @@ import {
 } from "@/lib/activities";
 
 import { ActivityTypeForm } from "./ActivityTypeForm";
+import { ActivityOptionsProvider } from "./ActivityOptionsStore";
 import styles from "./TrackingPanel.module.css";
 
 type Props = {
@@ -61,15 +62,14 @@ export function TrackingPanel({ clientId, page, filters }: Props) {
   const [hasMore, setHasMore] = useState(page.has_more);
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadError, setLoadError] = useState("");
-  const departments = page.departments ?? [];
-  const candidates = page.candidates ?? [];
-  const activityTypes = page.activity_types ?? [];
-  const options = {
+  const departments = page.departments;
+  const activityTypes = page.activity_types;
+  const options = useMemo(() => ({
     departments,
-    candidates,
+    candidates: page.candidates,
     activity_types: activityTypes,
     can_create: page.can_create,
-  };
+  }), [departments, page.candidates, activityTypes, page.can_create]);
   const groups = useMemo(() => groupActivities(items), [items]);
 
   async function loadMore() {
@@ -101,7 +101,7 @@ export function TrackingPanel({ clientId, page, filters }: Props) {
     }
   }
 
-  return (
+  const content = (
     <Card className={styles.card} id="tracking" aria-label="Seguimiento del cliente">
       <header className={styles.header}>
         <div>
@@ -122,7 +122,7 @@ export function TrackingPanel({ clientId, page, filters }: Props) {
 
       {editor === "ACTIVITY" ? (
         <div className={styles.editor}>
-          <ActivityForm clientId={clientId} options={options} onDone={(saved) => {
+          <ActivityForm clientId={clientId} onDone={(saved) => {
             setEditor(null);
             if (saved) setMessage("Actividad guardada.");
           }} />
@@ -184,8 +184,7 @@ export function TrackingPanel({ clientId, page, filters }: Props) {
             <DateDivider date={date} id={`date-${date}`} />
             <div className={styles.list}>
               {activities.map((activity) => (
-                <ActivityEntry key={activity.id} clientId={clientId} activity={activity}
-                  options={options} />
+                <ActivityEntry key={activity.id} clientId={clientId} activity={activity} />
               ))}
             </div>
           </section>
@@ -205,4 +204,5 @@ export function TrackingPanel({ clientId, page, filters }: Props) {
       ) : null}
     </Card>
   );
+  return <ActivityOptionsProvider options={options}>{content}</ActivityOptionsProvider>;
 }
