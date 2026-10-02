@@ -19,7 +19,7 @@ const client = {
   created_at: "2026-09-07T10:00:00Z", updated_at: "2026-09-07T10:00:00Z", contacts: [],
 };
 const workspace: Workspace = {
-  user_id: "owner", user_name: "Owner", user_email: "owner@example.com", user_role: "OWNER",
+  organization_id: "organization", user_id: "owner", user_name: "Owner", user_email: "owner@example.com", user_role: "OWNER",
   organization_name: "Test", organization_mode: "BUSINESS", departments: [],
 };
 const emptyActivities: ActivityPage = {

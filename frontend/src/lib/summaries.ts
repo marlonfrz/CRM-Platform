@@ -1,8 +1,14 @@
-export type AIProvider = "disabled" | "ollama" | "openai" | "anthropic" | "gemini";
-export type SummaryOptions = { enabled: boolean; provider: AIProvider; model: string; external: boolean; departments: { id: string; name: string }[] };
-export type AIConfiguration = {
-  provider: AIProvider; model: string; has_api_key: boolean; source: "organization" | "environment";
-};
+import type {
+  AiConfigurationResponse,
+  SummaryLatest as ApiSummaryLatest,
+  SummaryOptions as ApiSummaryOptions,
+  SummaryResponse,
+  SummarySource as ApiSummarySource,
+} from "@/lib/api-generated";
+
+export type AIProvider = AiConfigurationResponse["provider"];
+export type SummaryOptions = ApiSummaryOptions;
+export type AIConfiguration = AiConfigurationResponse;
 export const aiProviders: { value: AIProvider; label: string }[] = [
   { value: "disabled", label: "Desactivada" },
   { value: "openai", label: "OpenAI (ChatGPT API)" },
@@ -33,22 +39,9 @@ export const aiModels: Record<Exclude<AIProvider, "disabled">, { value: string; 
 export function aiProviderLabel(provider: AIProvider) {
   return aiProviders.find((item) => item.value === provider)?.label ?? provider;
 }
-export type SummarySource = {
-  id: string; client_id: string; client_name: string; activity_type_name: string;
-  title: string | null; description: string; status: "PENDING" | "COMPLETED";
-  scheduled_for: string; occurred_at: string | null;
-};
-export type SummaryResult = {
-  request_id: string | null; generated_at: string; provider: string; model: string; cached?: boolean;
-  usage?: { input_tokens: number; output_tokens: number; estimated_cost_usd: number | null } | null;
-  sections: { department_id: string | null; department_name: string | null;
-    content: { summary: string; pending_actions: string[]; source_ids: string[] };
-    sources: SummarySource[] }[];
-};
-export type SummaryLatest = {
-  generated_at: string; since: string; until: string; provider: string; model: string;
-  section: SummaryResult["sections"][number];
-};
+export type SummarySource = ApiSummarySource;
+export type SummaryResult = SummaryResponse;
+export type SummaryLatest = ApiSummaryLatest;
 export function formatEstimatedUsd(amount: number) {
   return new Intl.NumberFormat("es-ES", {
     style: "currency", currency: "USD", minimumFractionDigits: 4, maximumFractionDigits: 6,

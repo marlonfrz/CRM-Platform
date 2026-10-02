@@ -1,34 +1,13 @@
-export type ClientSummary = {
-  id: string;
-  name: string;
-  address: string | null;
-  created_at: string;
-  updated_at: string;
-};
+import type {
+  AssignmentTeamResponse,
+  AssignmentUserResponse,
+  ClientContactResponse,
+  ClientResponse,
+  ClientSummaryResponse,
+} from "@/lib/api-generated";
 
-export type ClientContact = {
-  id: string;
-  full_name: string;
-  position: string | null;
-  email: string | null;
-  phone: string | null;
-  notes: string | null;
-  created_at: string;
-  updated_at: string;
-};
-
-export type Client = ClientSummary & {
-  notes: string | null;
-  contacts: ClientContact[];
-};
-
-export type AssignmentUser = {
-  user_id: string;
-  full_name: string;
-  status: "ACTIVE" | "PENDING" | "DISABLED";
-};
-
-export type AssignmentTeam = {
-  assigned: AssignmentUser[];
-  available: AssignmentUser[];
-};
+export type ClientSummary = ClientSummaryResponse;
+export type ClientContact = ClientContactResponse;
+export type Client = ClientResponse;
+export type AssignmentUser = AssignmentUserResponse;
+export type AssignmentTeam = AssignmentTeamResponse;

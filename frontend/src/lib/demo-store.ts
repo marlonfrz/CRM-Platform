@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import type { AuthenticatedUserResponse, DepartmentResponse, UserResponse } from "@/lib/api-generated";
 import type { Activity, ActivityPage } from "@/lib/activities";
 import type { AuditEntry, AuditPage } from "@/lib/audit";
 import type { AssignmentTeam, Client, ClientContact, ClientSummary } from "@/lib/clients";
@@ -7,12 +8,13 @@ import type { AIConfiguration, SummaryLatest, SummaryOptions, SummaryResult } fr
 import type { Task, TaskPage } from "@/lib/tasks";
 import type { Workspace } from "@/lib/workspace";
 
-type Department = { id: string; name: string };
-type DemoUser = { id: string; email: string; full_name: string; role: Workspace["user_role"]; status: "PENDING" | "ACTIVE" | "DISABLED"; department_ids: string[] };
+type Department = DepartmentResponse;
+type DemoUser = UserResponse;
 type DemoClient = Client & { assigned_user_ids: string[] };
 type DemoState = { clients: DemoClient[]; users: DemoUser[]; departments: Department[]; activities: Activity[]; types: { id: string; name: string; department_id: string | null }[]; audit: AuditEntry[]; summaries: SummaryLatest[]; aiConfiguration: AIConfiguration };
 
 const ids = {
+  organization: "00000000-0000-4000-8000-000000000001",
   owner: "10000000-0000-4000-8000-000000000001",
   admin: "10000000-0000-4000-8000-000000000002",
   tech: "10000000-0000-4000-8000-000000000003",
@@ -37,6 +39,10 @@ const day = (offset = 0) => {
 };
 const dateTime = (offset = 0) => `${day(offset)}T10:00:00.000Z`;
 const clone = <T,>(value: T): T => structuredClone(value);
+const legacyTypes: Record<string, string> = {
+  llamada: "CALL", email: "EMAIL", "reunión": "MEETING", nota: "NOTE", incidencia: "INCIDENT", otro: "OTHER",
+};
+const legacyType = (name: string) => legacyTypes[name.toLocaleLowerCase("es")] ?? "OTHER";
 
 type DemoRecurrence = { repeat_unit?: string; repeat_interval?: number; weekdays?: number[]; monthly_mode?: string; monthly_day?: number; monthly_week?: number; monthly_weekday?: number; ends_on?: string | null };
 
@@ -95,7 +101,7 @@ function initialState(): DemoState {
     id, client_id, user_id: ids.owner, user_name: "Marlon Farizo", assigned_to_user_id,
     assigned_to_name: users.find((user) => user.id === assigned_to_user_id)?.full_name ?? "",
     department_id, department_name: [{ id: ids.it, name: "Informática" }, { id: ids.marketing, name: "Marketing" }, { id: ids.sales, name: "Comercial" }].find((item) => item.id === department_id)?.name ?? null,
-    activity_type_id: ids.work, activity_type_name: "Trabajo", title, description, next_action: null,
+    activity_type_id: ids.work, activity_type_name: "Trabajo", type: legacyType("Trabajo"), title, description, next_action: null,
     scheduled_for, status, occurred_at: status === "COMPLETED" ? `${scheduled_for}T10:00:00.000Z` : null,
     completed_at: status === "COMPLETED" ? `${scheduled_for}T10:00:00.000Z` : null, schedule_id: null,
     created_at: now, updated_at: now, can_edit: true, can_delete: true,
@@ -122,10 +128,10 @@ const demoGlobal = globalThis as typeof globalThis & {
   crmDemoInitialState?: DemoState;
   crmDemoSchemaVersion?: number;
 };
-if (demoGlobal.crmDemoSchemaVersion !== 1) {
+if (demoGlobal.crmDemoSchemaVersion !== 2) {
   demoGlobal.crmDemoSessions = new Map();
   demoGlobal.crmDemoInitialState = initialState();
-  demoGlobal.crmDemoSchemaVersion = 1;
+  demoGlobal.crmDemoSchemaVersion = 2;
 }
 const sessions = demoGlobal.crmDemoSessions ??= new Map<string, { state: DemoState; updatedAt: number }>();
 const seed = demoGlobal.crmDemoInitialState ??= initialState();
@@ -173,7 +179,8 @@ export function demoRead(path: string, sessionId?: string): Response {
   const url = parsePath(path);
   const segments = url.pathname.split("/").filter(Boolean);
   const allActivities = [...state.activities].sort((a, b) => Number(b.status === "PENDING") - Number(a.status === "PENDING") || a.scheduled_for.localeCompare(b.scheduled_for));
-  if (url.pathname === "/workspace" || url.pathname === "/auth/me") return json({ user_id: ids.owner, organization_name: "Organización Ejemplo", organization_mode: "BUSINESS", user_name: "Marlon Farizo", user_email: "marlon@example.test", user_role: "OWNER", departments: state.departments } satisfies Workspace);
+  if (url.pathname === "/workspace") return json({ organization_id: ids.organization, user_id: ids.owner, organization_name: "Organización Ejemplo", organization_mode: "BUSINESS", user_name: "Marlon Farizo", user_email: "marlon@example.test", user_role: "OWNER", departments: state.departments } satisfies Workspace);
+  if (url.pathname === "/auth/me") return json({ id: ids.owner, organization_id: ids.organization, email: "marlon@example.test", full_name: "Marlon Farizo", role: "OWNER", status: "ACTIVE" } satisfies AuthenticatedUserResponse);
   if (url.pathname === "/admin/departments") return json(state.departments);
   if (url.pathname === "/admin/users") return json(state.users);
   if (url.pathname === "/activity-types") return json(state.types);
@@ -192,11 +199,13 @@ export function demoRead(path: string, sessionId?: string): Response {
     }
     if (segments[2] === "history") return json({ ...page(state.activities.filter((item) => item.client_id === client.id).map((item) => asHistory(item, state)), url) } satisfies HistoryPage);
     if (segments[2] === "activities") {
-      const period = url.searchParams.get("period") ?? "TODAY";
+      const period = url.searchParams.get("period");
       const filtered = state.activities.filter((item) => item.client_id === client.id
         && (!url.searchParams.get("activity_type_id") || item.activity_type_id === url.searchParams.get("activity_type_id"))
         && (!url.searchParams.get("department_id") || item.department_id === url.searchParams.get("department_id"))
-        && (period === "HISTORY" ? item.scheduled_for < day() : period === "SCHEDULED" ? item.scheduled_for > day() : item.scheduled_for === day()));
+        && (period === "HISTORY" ? item.scheduled_for < day() : period === "SCHEDULED"
+          ? item.scheduled_for > day() && item.status === "PENDING"
+          : period === "TODAY" ? item.scheduled_for === day() : true));
       return json({ ...page(filtered, url), departments: state.departments,
         candidates: state.users.filter((user) => user.status === "ACTIVE").map((user) => ({ id: user.id, name: user.full_name, department_ids: user.department_ids })),
         activity_types: state.types, can_create: true, can_manage_types: true } satisfies ActivityPage);
@@ -246,7 +255,7 @@ function taskPage(state: DemoState, activities: Activity[], url: URL, client: bo
     id: item.id, client_id: item.client_id, client_name: state.clients.find((entry) => entry.id === item.client_id)?.name ?? "Cliente",
     title: item.title ?? item.description, description: item.description, assigned_to_user_id: item.assigned_to_user_id,
     assigned_to_name: item.assigned_to_name, created_by_user_id: item.user_id,
-    department_id: item.department_id, department_name: item.department_name, due_at: `${item.scheduled_for}T10:00:00Z`,
+    department_id: item.department_id, department_name: item.department_name, due_at: item.scheduled_for,
     status: item.status, completed_at: item.completed_at, created_at: item.created_at, updated_at: item.updated_at,
   })), url), options: client ? { individual: false, departments: state.departments,
     candidates: state.users.filter((user) => user.status === "ACTIVE").map((user) => ({ id: user.id, name: user.full_name, department_ids: user.department_ids })) } : null };
@@ -330,6 +339,7 @@ export async function demoWrite(path: string, method: string, payload: unknown, 
           assigned_to_user_id: assignee.id, assigned_to_name: assignee.full_name, department_id: department.id,
           department_name: department.name, activity_type_id: value("activity_type_id") || ids.work,
           activity_type_name: state.types.find((item) => item.id === value("activity_type_id"))?.name ?? "Trabajo",
+          type: legacyType(state.types.find((item) => item.id === value("activity_type_id"))?.name ?? "Trabajo"),
           title: value("title") || null, description: value("description") || value("title"), next_action: value("next_action") || null,
           scheduled_for: (value("scheduled_for") || value("due_at").slice(0, 10) || day()), status,
           occurred_at: status === "COMPLETED" ? iso() : null, completed_at: status === "COMPLETED" ? iso() : null,
@@ -343,7 +353,7 @@ export async function demoWrite(path: string, method: string, payload: unknown, 
         }
         state.activities.unshift(created, ...(following ? [following] : []));
         record(state, "CREATED_ACTIVITY", "ACTIVITY", created.id, created.title ?? created.description);
-        return done(json(following ? [created, following] : [created], 201));
+        return done(json(task ? { id: created.id } : { id: created.id, ids: [created.id, ...(following ? [following.id] : [])] }, 201));
       }
       if (!activity) return done(error(404, "Activity not found"));
       if (segments[4] === "complete" && method === "POST") {
@@ -357,6 +367,7 @@ export async function demoWrite(path: string, method: string, payload: unknown, 
         activity.scheduled_for = value("scheduled_for") || value("due_at").slice(0, 10) || activity.scheduled_for;
         activity.activity_type_id = value("activity_type_id") || activity.activity_type_id;
         activity.activity_type_name = state.types.find((item) => item.id === activity.activity_type_id)?.name ?? activity.activity_type_name;
+        activity.type = legacyType(activity.activity_type_name);
         activity.assigned_to_user_id = value("assigned_to_user_id") || activity.assigned_to_user_id;
         activity.assigned_to_name = state.users.find((item) => item.id === activity.assigned_to_user_id)?.full_name ?? activity.assigned_to_name;
         activity.occurred_at = value("occurred_at") || activity.occurred_at; activity.updated_at = iso();

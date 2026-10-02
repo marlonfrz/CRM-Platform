@@ -66,21 +66,28 @@ describe("backend proxy", () => {
         scheduled_for: "2026-10-01", recurrence: { repeat_unit: "WEEK", repeat_interval: 1, weekdays: [3] } }),
     }), { params: Promise.resolve({ path }) });
     expect(create.status).toBe(201);
-    const created = await create.json() as { id: string; schedule_id: string; scheduled_for: string }[];
-    expect(created).toHaveLength(2);
-    expect(created[1].scheduled_for).toBe("2026-10-08");
-    expect(created[0].schedule_id).toBe(created[1].schedule_id);
+    const created = await create.json() as { id: string; ids: string[] };
+    expect(created.ids).toHaveLength(2);
+    expect(created.id).toBe(created.ids[0]);
     const cookie = create.headers.get("set-cookie")?.split(";")[0];
-    const deletionPath = [...path, created[0].id];
+    const listed = await GET(new NextRequest(`http://localhost:4173/api/backend/${path.join("/")}`, {
+      headers: { cookie: cookie! },
+    }), { params: Promise.resolve({ path }) });
+    const items = (await listed.json()).items as { id: string; schedule_id: string; scheduled_for: string }[];
+    const first = items.find((item) => item.id === created.ids[0]);
+    const second = items.find((item) => item.id === created.ids[1]);
+    expect(second?.scheduled_for).toBe("2026-10-08");
+    expect(first?.schedule_id).toBe(second?.schedule_id);
+    const deletionPath = [...path, created.id];
     const { DELETE } = await import("./route");
     const deletion = await DELETE(new NextRequest(`http://localhost:4173/api/backend/${deletionPath.join("/")}?scope=THIS_AND_FOLLOWING`, {
       method: "DELETE", headers: { origin: "http://localhost:4173", host: "localhost:4173", cookie: cookie! },
     }), { params: Promise.resolve({ path: deletionPath }) });
     expect(deletion.status).toBe(204);
-    const remaining = await GET(new NextRequest(`http://localhost:4173/api/backend/${path.join("/")}?period=SCHEDULED`, {
+    const remaining = await GET(new NextRequest(`http://localhost:4173/api/backend/${path.join("/")}`, {
       headers: { cookie: cookie! },
     }), { params: Promise.resolve({ path }) });
-    expect((await remaining.json()).items).not.toEqual(expect.arrayContaining([expect.objectContaining({ schedule_id: created[0].schedule_id })]));
+    expect((await remaining.json()).items).not.toEqual(expect.arrayContaining([expect.objectContaining({ schedule_id: first?.schedule_id })]));
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });

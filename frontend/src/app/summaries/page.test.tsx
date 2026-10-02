@@ -15,7 +15,7 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn() }),
 }));
 const workspace: Workspace = {
-  user_id: "owner", user_name: "Owner", user_email: "owner@example.com", user_role: "OWNER",
+  organization_id: "organization", user_id: "owner", user_name: "Owner", user_email: "owner@example.com", user_role: "OWNER",
   organization_name: "Test", organization_mode: "BUSINESS", departments: [],
 };
 const options: SummaryOptions = {

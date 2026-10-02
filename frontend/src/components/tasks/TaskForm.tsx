@@ -42,8 +42,8 @@ export function TaskForm({ clientId, options, task, onDone }: Props) {
           <><input type="hidden" name="assignee" value={selected} /><MutedText>Responsable: {choices[0]?.label ?? "Tú"}</MutedText></>
         ) : <SelectField key={department + choices.map((u) => u.value).join(",")} label="Responsable" name="assignee" required disabled={busy || !choices.length}
           defaultValue={selected} options={[{ value: "", label: "Selecciona un responsable" }, ...choices]} />}
-        <FormField label="Fecha límite (UTC, opcional)" name="dueAt" type="datetime-local" step="any"
-          defaultValue={task?.due_at ? new Date(task.due_at).toISOString().slice(0, -1) : ""} disabled={busy} />
+        <FormField label="Fecha programada (opcional; hoy si se deja vacía)" name="dueAt" type="date"
+          defaultValue={task?.due_at ?? ""} disabled={busy} />
       </div>
       {!task && !candidates.length ? <MutedText>No hay responsables disponibles para este departamento. Un empleado necesita tener asignado el cliente.</MutedText> : null}
       {error ? <FormError>{error}</FormError> : null}

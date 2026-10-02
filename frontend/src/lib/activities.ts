@@ -1,41 +1,20 @@
-export type ActivityStatus = "PENDING" | "COMPLETED";
-export type ActivityView = "TODAY" | "SCHEDULED" | "HISTORY";
-export type ActivityDepartment = { id: string; name: string };
-export type ActivityCandidate = { id: string; name: string; department_ids: string[] };
-export type ActivityTypeOption = { id: string; name: string; department_id: string | null };
-export type Activity = {
-  id: string;
-  client_id: string;
-  user_id: string;
-  user_name: string;
-  assigned_to_user_id: string;
-  assigned_to_name: string;
-  department_id: string | null;
-  department_name: string | null;
-  activity_type_id: string;
-  activity_type_name: string;
-  title: string | null;
-  description: string;
-  next_action: string | null;
-  scheduled_for: string;
-  status: ActivityStatus;
-  occurred_at: string | null;
-  completed_at: string | null;
-  schedule_id: string | null;
-  created_at: string;
-  updated_at: string;
-  can_edit: boolean;
-  can_delete: boolean;
-};
-export type ActivityPage = {
-  items: Activity[];
-  departments: ActivityDepartment[];
-  candidates: ActivityCandidate[];
-  activity_types: ActivityTypeOption[];
-  can_create: boolean;
-  can_manage_types: boolean;
-  has_more: boolean;
-};
+import type {
+  ActivityCandidate as ApiActivityCandidate,
+  ActivityDepartment as ApiActivityDepartment,
+  ActivityPage as ApiActivityPage,
+  ActivityPeriod,
+  ActivityResponse,
+  ActivityStatus as ApiActivityStatus,
+  ActivityTypeOption as ApiActivityTypeOption,
+} from "@/lib/api-generated";
+
+export type ActivityStatus = ApiActivityStatus;
+export type ActivityView = ActivityPeriod;
+export type ActivityDepartment = ApiActivityDepartment;
+export type ActivityCandidate = ApiActivityCandidate;
+export type ActivityTypeOption = ApiActivityTypeOption;
+export type Activity = ActivityResponse;
+export type ActivityPage = ApiActivityPage;
 export type ActivityFilters = { type: string; department: string; view: ActivityView };
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

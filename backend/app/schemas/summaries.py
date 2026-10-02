@@ -120,7 +120,7 @@ class SummaryDepartment(BaseModel):
 
 class SummaryOptions(BaseModel):
     enabled: bool
-    provider: str
+    provider: AIProviderName
     model: str
     external: bool
     departments: list[SummaryDepartment]

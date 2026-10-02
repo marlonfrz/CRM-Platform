@@ -56,6 +56,8 @@ mypy app
 pytest
 ```
 
+The frontend response types in `frontend/src/lib/api-generated/` are generated from FastAPI OpenAPI. After changing a backend response schema, install the backend environment and run `npm run generate:api` from `frontend/`, then commit the regenerated types. This command does not need a running API or database. Set `CRM_PYTHON` if the backend virtual environment is in a nonstandard location.
+
 Initialize the first organization and owner after applying migrations:
 
 ```bash

@@ -7,6 +7,8 @@ frontend/.next/
 frontend/node_modules/
 frontend/coverage/
 frontend/*.tsbuildinfo
+frontend/openapi.json
+frontend/.npm-cache/
 demo/.vite/
 
 backend/.venv/

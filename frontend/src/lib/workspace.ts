@@ -1,16 +1,9 @@
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { demoRead } from "@/lib/demo-store";
+import type { WorkspaceResponse } from "@/lib/api-generated";
 
-export type Workspace = {
-  user_id: string;
-  organization_name: string;
-  organization_mode: "INDIVIDUAL" | "BUSINESS";
-  user_name: string;
-  user_email: string;
-  user_role: "OWNER" | "ADMIN" | "EMPLOYEE";
-  departments: { id: string; name: string }[];
-};
+export type Workspace = WorkspaceResponse;
 
 export async function serverApi<T>(path: string, options: { notFoundOnDenied?: boolean } = {}): Promise<T> {
   const cookieStore = await cookies();

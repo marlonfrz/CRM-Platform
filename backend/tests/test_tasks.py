@@ -1,5 +1,5 @@
 import asyncio
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from uuid import UUID, uuid4
 
 import pytest
@@ -429,15 +429,19 @@ async def test_pagination_status_null_due_date_and_department_deletion(
     team: Team, api_client: AsyncClient
 ) -> None:
     headers = await login(api_client, team.users["admin"])
-    for due in [None, "2026-10-01T10:00:00Z", "2026-09-01T10:00:00Z"]:
+    today = date.today()
+    past = today - timedelta(days=30)
+    future = today + timedelta(days=30)
+    for due in [None, f"{future}T10:00:00Z", f"{past}T10:00:00Z"]:
         assert (
             await api_client.post(path(team), headers=headers, json=body(due_at=due))
         ).status_code == 201
     first = (await api_client.get(f"{path(team)}?limit=2&status=PENDING")).json()
     second = (await api_client.get(f"{path(team)}?limit=2&offset=2")).json()
     assert first["has_more"] and not second["has_more"]
-    assert first["items"][0]["due_at"].startswith("2026-09-01")
-    assert second["items"][0]["due_at"].startswith("2026-10-01")
+    assert first["items"][0]["due_at"] == past.isoformat()
+    assert first["items"][1]["due_at"] == today.isoformat()
+    assert second["items"][0]["due_at"] == future.isoformat()
     for query in ["limit=101", "offset=-1", "status=OTHER"]:
         assert (await api_client.get(f"{path(team)}?{query}")).status_code == 422
     headers = await login(api_client, team.users["owner"])

@@ -46,7 +46,7 @@ describe("Tasks", () => {
 
   it("shows due-less tasks and actions only for pending tasks", () => {
     const markup = renderToStaticMarkup(<TaskEntry task={task} options={options} />);
-    expect(markup).toContain("Sin fecha límite");
+    expect(markup).toContain("Sin fecha programada");
     expect(markup).toContain("Completar tarea");
     expect(markup).toContain("Editar tarea");
     const completed = renderToStaticMarkup(<TaskEntry task={{ ...task, status: "COMPLETED", completed_at: "2026-09-07T13:00:00Z" }} options={options} />);
@@ -58,7 +58,11 @@ describe("Tasks", () => {
 
   it("my tasks link to their client and permit completion without a duplicate editing form", () => {
     const markup = renderToStaticMarkup(<TaskEntry task={task} options={null} />);
-    expect(markup).toContain('href="/clients/client?tracking_filter=TASK_PENDING#tracking"');
+    expect(markup).toContain('href="/clients/client?tracking_view=TODAY#tracking"');
+    const future = renderToStaticMarkup(<TaskEntry task={{ ...task, due_at: "2099-01-01" }} options={null} />);
+    expect(future).toContain('href="/clients/client?tracking_view=SCHEDULED#tracking"');
+    const past = renderToStaticMarkup(<TaskEntry task={{ ...task, due_at: "2000-01-01" }} options={null} />);
+    expect(past).toContain('href="/clients/client?tracking_view=HISTORY#tracking"');
     expect(markup).toContain("Completar tarea");
     expect(markup).not.toContain("Editar tarea");
   });
@@ -89,10 +93,10 @@ describe("Tasks", () => {
     const data = new FormData();
     data.set("title", "  Call  "); data.set("department", "a"); data.set("assignee", "ana");
     expect(taskFormBody(data, false)).toEqual({ title: "Call", description: null, due_at: null, assigned_to_user_id: "ana", department_id: "a" });
-    data.set("dueAt", "2026-10-01T10:30");
+    data.set("dueAt", "2026-10-01");
     const edit = taskFormBody(data, true);
     expect(edit).not.toHaveProperty("department_id");
-    expect(edit.due_at).toBe("2026-10-01T10:30:00.000Z");
+    expect(edit.due_at).toBe("2026-10-01T12:00:00Z");
     expect(edit).not.toHaveProperty("status");
   });
 });

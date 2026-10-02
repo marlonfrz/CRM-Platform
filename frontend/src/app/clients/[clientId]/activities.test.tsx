@@ -38,7 +38,7 @@ const item: Activity = {
   id: "activity", client_id: "client", user_id: "author", user_name: "Ana",
   assigned_to_user_id: options.candidates[0].id, assigned_to_name: "Ana",
   department_id: options.departments[0].id, department_name: "Diseño",
-  activity_type_id: options.activity_types[0].id, activity_type_name: "Llamada",
+  activity_type_id: options.activity_types[0].id, activity_type_name: "Llamada", type: "CALL",
   title: "Revisar propuesta", description: "Revisamos el formulario.", next_action: null,
   scheduled_for: "2026-09-16", status: "PENDING", occurred_at: null, completed_at: null,
   schedule_id: null, created_at: "2026-09-16T11:00:00Z",

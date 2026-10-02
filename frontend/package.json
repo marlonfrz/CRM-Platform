@@ -8,6 +8,7 @@
     "demo": "node scripts/demo.mjs dev",
     "demo:build": "node scripts/demo.mjs build",
     "demo:start": "node scripts/demo.mjs start",
+    "generate:api": "node scripts/generate-api.mjs",
     "build": "next build",
     "start": "next start --hostname 0.0.0.0",
     "lint": "eslint . --max-warnings=0",
@@ -21,6 +22,7 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@hey-api/openapi-ts": "0.99.0",
     "@types/node": "^26.2.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",

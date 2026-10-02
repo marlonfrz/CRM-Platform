@@ -1,3 +1,5 @@
+import type { AuditActorOption, AuditEntry as ApiAuditEntry, AuditPage as ApiAuditPage } from "@/lib/api-generated";
+
 export const auditActions: Record<string, string> = {
   UPDATED_AI_CONFIGURATION: "Configuración de IA actualizada",
   AI_SUMMARY_REQUESTED: "Resumen IA solicitado", AI_SUMMARY_COMPLETED: "Resumen IA completado", AI_SUMMARY_FAILED: "Resumen IA fallido",
@@ -86,13 +88,9 @@ const changedFieldLabels: Record<string, string> = {
   assigned_to_user_id: "responsable", due_at: "fecha prevista", scheduled_for: "fecha programada",
   activity_type_id: "tipo de actividad", status: "estado", completed_at: "fecha de finalización",
 };
-export type AuditEntry = {
-  id: string; actor_user_id: string | null; actor_name: string | null; action: string;
-  entity_type: string; entity_id: string; entity_name: string | null; created_at: string;
-  metadata: Record<string, unknown>; metadata_names: Record<string, string | string[]>;
-};
-export type AuditActor = { id: string; name: string };
-export type AuditPage = { items: AuditEntry[]; actors: AuditActor[]; has_more: boolean };
+export type AuditEntry = ApiAuditEntry;
+export type AuditActor = AuditActorOption;
+export type AuditPage = ApiAuditPage;
 export type AuditFilters = {
   category: AuditCategory; action: string; actor_user_id: string; entity_id: string;
   since: string; until: string; offset: number;

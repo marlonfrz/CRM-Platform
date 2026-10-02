@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { FormError, MutedText } from "@/components/ui/Text";
 import { Task, TaskOptions } from "@/lib/tasks";
+import { ActivityView, activityDate } from "@/lib/activities";
 import { formatUtcTimestamp } from "@/lib/date-time";
 import { TaskForm } from "./TaskForm";
 import { useTaskMutation } from "./useTaskMutation";
@@ -16,6 +17,10 @@ export function TaskEntry({ task, options }: { task: Task; options: TaskOptions 
   const [message, setMessage] = useState("");
   const { mutate, error, busy } = useTaskMutation();
   const pending = task.status === "PENDING";
+  const today = new Date().toISOString().slice(0, 10);
+  const dueDate = task.due_at?.slice(0, 10);
+  const view: ActivityView = !dueDate || dueDate === today
+    ? "TODAY" : dueDate > today ? "SCHEDULED" : "HISTORY";
   async function complete() {
     if (await mutate(`/clients/${task.client_id}/tasks/${task.id}/complete`, "POST")) {
       setConfirming(false);
@@ -27,14 +32,14 @@ export function TaskEntry({ task, options }: { task: Task; options: TaskOptions 
       <header className={styles.header}>
         <div><span className={pending ? styles.pending : styles.completed}>{pending ? "Pendiente" : "Completada"}</span>
           <h3>{task.title}</h3></div>
-        <time>{task.due_at ? formatUtcTimestamp(task.due_at) : "Sin fecha límite"}</time>
+        <time>{task.due_at ? activityDate(task.due_at) : "Sin fecha programada"}</time>
       </header>
       {editing && options && pending ? <TaskForm clientId={task.client_id} task={task} options={options} onDone={(saved) => {
         setEditing(false); if (saved) setMessage("Cambios guardados.");
       }} /> : (
         <>
           {task.description ? <p className={styles.description}>{task.description}</p> : null}
-          <p className={styles.meta}>{!options ? <Link href={`/clients/${task.client_id}?tracking_filter=${pending ? "TASK_PENDING" : "TASK_COMPLETED"}#tracking`}>{task.client_name}</Link> : null}
+          <p className={styles.meta}>{!options ? <Link href={`/clients/${task.client_id}?tracking_view=${view}#tracking`}>{task.client_name}</Link> : null}
             {!options ? " · " : ""}{task.assigned_to_name}{task.department_name ? ` · ${task.department_name}` : ""}</p>
           {task.completed_at ? <MutedText className={styles.timestamp}>Completada: {formatUtcTimestamp(task.completed_at)}</MutedText> : null}
           {pending ? <div className={styles.actions}>

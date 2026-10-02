@@ -9,7 +9,7 @@ import AuditPage from "./page";
 vi.mock("@/lib/workspace", () => ({ loadWorkspace: vi.fn(), serverApi: vi.fn() }));
 vi.mock("next/navigation", () => ({ redirect: () => { throw new Error("REDIRECT"); }, useRouter: () => ({ refresh: vi.fn(), push: vi.fn() }) }));
 const workspace: Workspace = {
-  user_id: "owner", user_name: "Owner", user_email: "owner@example.com", user_role: "OWNER",
+  organization_id: "organization", user_id: "owner", user_name: "Owner", user_email: "owner@example.com", user_role: "OWNER",
   organization_name: "Test", organization_mode: "BUSINESS", departments: [],
 };
 const filters = parseAuditFilters({});

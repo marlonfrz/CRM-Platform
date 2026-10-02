@@ -1,16 +1,9 @@
-export type TaskStatus = "PENDING" | "COMPLETED";
-export type Task = {
-  id: string; client_id: string; client_name: string; title: string; description: string | null;
-  assigned_to_user_id: string; assigned_to_name: string; created_by_user_id: string;
-  department_id: string | null; department_name: string | null;
-  due_at: string | null; status: TaskStatus; completed_at: string | null;
-  created_at: string; updated_at: string;
-};
-export type TaskOptions = {
-  individual: boolean; departments: { id: string; name: string }[];
-  candidates: { id: string; name: string; department_ids: string[] }[];
-};
-export type TaskPage = { items: Task[]; has_more: boolean; options: TaskOptions | null };
+import type { ActivityStatus, TaskOptions as ApiTaskOptions, TaskPage as ApiTaskPage, TaskResponse } from "@/lib/api-generated";
+
+export type TaskStatus = ActivityStatus;
+export type Task = TaskResponse;
+export type TaskOptions = ApiTaskOptions;
+export type TaskPage = ApiTaskPage;
 export type TaskFilters = { status: string; offset: number };
 export const taskStatusOptions = [
   { value: "", label: "Todos los estados" },
@@ -42,7 +35,7 @@ export function taskFormBody(data: FormData, editing: boolean) {
   const values = {
     title: String(data.get("title") ?? "").trim(),
     description: String(data.get("description") ?? "").trim() || null,
-    due_at: date ? new Date(`${date}Z`).toISOString() : null,
+    due_at: date ? `${date}T12:00:00Z` : null,
     assigned_to_user_id: data.get("assignee") || null,
   };
   return editing ? values : { ...values, department_id: data.get("department") || null };
